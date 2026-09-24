@@ -75,9 +75,11 @@ exports.login = async (req, res) => {
   conditions.push({ loginRollNo: lower });
 
   const userQuery = { $or: conditions };
-  // The shared mobile app supplies collegeCode so authentication is tenant-scoped.
-  // collegeCode stays optional here to preserve existing web/platform-owner login.
+  // Tenant users must authenticate inside their institution. When no college code
+  // is supplied, only platform-level accounts (such as Platform Owner) are eligible.
+  // Mobile clients continue to use the same endpoint with collegeCode supplied.
   if (loginCollege) userQuery.collegeId = loginCollege._id;
+  else userQuery.collegeId = null;
 
   const user = await User.findOne(userQuery).populate('roleIds');
   if (!user || !user.isActive || !(await bcrypt.compare(password, user.passwordHash))) {
