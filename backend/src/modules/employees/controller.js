@@ -648,7 +648,7 @@ exports.update = async (req, res) => {
 
     // Extra login roles are edited explicitly from User Accounts/System Access.
     if (Array.isArray(req.body.roleIds)) {
-      const roles = await validateRoleIds(req, collegeId, req.body.roleIds);
+      let roles = await validateRoleIds(req, collegeId, req.body.roleIds);
       if (!roles.length) {
         return res.status(400).json({
           error: 'A linked login account must have at least one role'
