@@ -1,0 +1,31 @@
+const r=require('express').Router();
+const multer=require('multer');
+const path=require('path');
+const fs=require('fs');
+const permit=require('../../middleware/permissions');
+const P=require('../../constants/permissions');
+const c=require('./controller');
+
+const uploadDir=path.join(process.cwd(),'uploads','notices');
+fs.mkdirSync(uploadDir,{recursive:true});
+const storage=multer.diskStorage({destination:(_req,_file,cb)=>cb(null,uploadDir),filename:(_req,file,cb)=>{const ext=path.extname(file.originalname||'').toLowerCase();cb(null,`notice-${Date.now()}-${Math.round(Math.random()*1e9)}${ext}`)}});
+const upload=multer({storage,limits:{fileSize:5*1024*1024},fileFilter:(_req,file,cb)=>{const allowed=['application/pdf','image/jpeg','image/png','image/webp','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document'];if(!allowed.includes(file.mimetype))return cb(Object.assign(new Error('Only PDF, image, DOC and DOCX attachments are allowed'),{status:400}));cb(null,true)}});
+
+r.get('/meta',permit(P.VIEW_NOTICES),c.meta);
+r.get('/dashboard',permit(P.VIEW_NOTICES),c.dashboard);
+r.get('/manage',permit(P.MANAGE_NOTICES),c.manageList);
+r.get('/categories',permit(P.VIEW_NOTICES),c.categories);
+r.post('/categories',permit(P.MANAGE_NOTICES),c.createCategory);
+r.put('/categories/:id',permit(P.MANAGE_NOTICES),c.updateCategory);
+r.get('/settings',permit(P.VIEW_NOTICES),c.settings);
+r.put('/settings',permit(P.MANAGE_NOTICES),c.saveSettings);
+r.get('/notifications/mine',c.listNotifications);
+r.post('/notifications/:id/read',c.markRead);
+r.post('/notifications/read-all',c.markAllRead);
+r.get('/',permit(P.VIEW_NOTICES),c.listNotices);
+r.post('/',permit(P.MANAGE_NOTICES),c.createNotice);
+r.put('/:id',permit(P.MANAGE_NOTICES),c.updateNotice);
+r.post('/:id/attachment',permit(P.MANAGE_NOTICES),upload.single('attachment'),c.uploadAttachment);
+r.post('/:id/publish',permit(P.SEND_NOTICES),c.publishNotice);
+r.post('/:id/cancel',permit(P.MANAGE_NOTICES),c.cancelNotice);
+module.exports=r;

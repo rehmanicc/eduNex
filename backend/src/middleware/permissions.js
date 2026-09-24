@@ -1,0 +1,1 @@
+module.exports=(...permissions)=>(req,res,next)=>{if(req.user?.systemRole==='platform_owner')return next();const owned=new Set(req.user?.effectivePermissions||[]);if(owned.has('*')||permissions.every(p=>owned.has(p)))return next();return res.status(403).json({error:'Permission denied',required:permissions});};

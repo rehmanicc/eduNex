@@ -1,0 +1,38 @@
+# Dependencies
+**/node_modules/
+
+# Environment / secrets
+**/.env
+**/.env.*
+!**/.env.example
+
+# Build output
+frontend/dist/
+**/dist/
+**/build/
+
+# Runtime uploads
+uploads/
+backend/uploads/
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Process/runtime files
+*.pid
+*.pid.lock
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Deployment archives/backups
+*.tar
+*.tar.gz
+*.zip
+*.bak
+*.backup*

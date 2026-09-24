@@ -1,0 +1,18 @@
+const r = require('express').Router();
+const c = require('./controller');const lifecycle=require('./lifecycle');const permit = require('../../middleware/permissions');const P = require('../../constants/permissions');
+r.get('/', permit(P.VIEW_STUDENTS), c.list);
+r.post('/bulk-promote',permit(P.MANAGE_STUDENT_LIFECYCLE),lifecycle.bulkPromote);
+r.get('/:id/enrollments',permit(P.VIEW_STUDENTS),lifecycle.enrollments);
+r.get('/:id/progress',permit(P.VIEW_STUDENTS),c.progress);
+r.get('/:id/lifecycle',permit(P.VIEW_STUDENTS),lifecycle.history);
+r.post('/:id/promote',permit(P.MANAGE_STUDENT_LIFECYCLE),lifecycle.promote);
+r.post('/:id/assign-section',permit(P.MANAGE_STUDENT_LIFECYCLE),lifecycle.assignSection);
+r.post('/:id/transfer-section',permit(P.MANAGE_STUDENT_LIFECYCLE),lifecycle.transferSection);
+r.post('/:id/change-class',permit(P.MANAGE_STUDENT_LIFECYCLE),lifecycle.changeClass);
+r.post('/:id/status',permit(P.MANAGE_STUDENT_LIFECYCLE),lifecycle.changeStatus);
+r.get('/:id', permit(P.VIEW_STUDENTS), c.get);
+r.put('/:id/admission-profile', permit(P.MANAGE_STUDENTS), c.updateAdmissionProfile);
+r.post('/', permit(P.MANAGE_STUDENTS), c.create);
+r.put('/:id', permit(P.MANAGE_STUDENTS), c.update);
+r.delete('/:id', permit(P.MANAGE_STUDENTS), c.remove);
+module.exports = r;

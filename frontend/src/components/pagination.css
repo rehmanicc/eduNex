@@ -1,0 +1,68 @@
+.cms-pagination{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  padding:10px 2px 2px;
+  font-size:13px;
+  color:#64748b;
+}
+
+.cms-pagination-buttons{
+  display:flex;
+  gap:5px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+/*
+ * Shared pager buttons must stay readable regardless of module/global button rules.
+ * Some modules style every button inside their page/table as blue with white text,
+ * so these states intentionally use !important.
+ */
+.cms-pagination .cms-pagination-buttons button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:34px!important;
+  min-height:32px!important;
+  padding:6px 10px!important;
+  border:1px solid #cbd5e1!important;
+  border-radius:6px!important;
+  background:#ffffff!important;
+  color:#334155!important;
+  font-size:13px!important;
+  font-weight:600!important;
+  line-height:1.2!important;
+  opacity:1!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  visibility:visible!important;
+  cursor:pointer;
+}
+
+.cms-pagination .cms-pagination-buttons button:hover:not(:disabled):not(.active){
+  background:#eff6ff!important;
+  border-color:#93c5fd!important;
+  color:#1d4ed8!important;
+}
+
+.cms-pagination .cms-pagination-buttons button.active{
+  background:var(--primary,#1d4ed8)!important;
+  border-color:var(--primary,#1d4ed8)!important;
+  color:#ffffff!important;
+  font-weight:700!important;
+}
+
+.cms-pagination .cms-pagination-buttons button:disabled{
+  background:#f1f5f9!important;
+  border-color:#dbe3ee!important;
+  color:#64748b!important;
+  opacity:1!important;
+  cursor:not-allowed!important;
+}
+
+@media(max-width:640px){
+  .cms-pagination{align-items:flex-start;flex-direction:column}
+}

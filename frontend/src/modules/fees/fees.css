@@ -1,0 +1,421 @@
+.fee-page{min-width:0}.fee-module-nav{display:flex;gap:8px;margin-bottom:16px;padding:8px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc}.fee-module-nav button{padding:8px 13px;border-radius:7px;border:1px solid #cbd5e1;background:#fff;font-weight:700}.fee-module-nav button.active{background:#2457e6;color:#fff;border-color:#2457e6}.fee-title-row{display:flex;justify-content:space-between;align-items:center}.fee-structure-card{padding:14px;margin:12px 0 18px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc}.fee-grid{display:grid;gap:10px}.fee-grid-2{grid-template-columns:2fr 1fr}.fee-grid label,.fee-head-grid label,.fee-package-body label{display:grid;gap:5px}.fee-grid label span,.fee-head-grid label span,.fee-package-body label>span{font-size:12px;font-weight:800;color:#475569}.fee-grid input,.fee-grid select,.fee-head-grid input,.fee-package-body input,.fee-package-body select,.fee-package-row input,.fee-package-row select{min-height:36px;box-sizing:border-box;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;background:#fff}.fee-section-label{font-weight:800;margin:14px 0 8px}.fee-checks{display:flex;gap:8px 18px;flex-wrap:wrap}.fee-head-grid{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:9px}.fee-form-footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:12px;border-top:1px solid #e2e8f0}.fee-form-footer button,.fee-page table button,.fee-modal-actions button{border:0;border-radius:7px;padding:8px 12px;background:#2457e6;color:#fff;font-weight:700;cursor:pointer}.fee-form-footer button:disabled,.fee-modal-actions button:disabled{opacity:.55;cursor:not-allowed}.fee-table-wrap{overflow:auto}.fee-page table{width:100%;border-collapse:collapse;background:#fff}.fee-page th,.fee-page td{padding:9px 10px;border-bottom:1px solid #e2e8f0;text-align:left;vertical-align:top;white-space:nowrap}.fee-page td small{display:block;color:#64748b;margin-top:3px;font-size:10px}.fee-status{font-size:10px;font-weight:800;text-transform:uppercase;padding:4px 7px;border-radius:999px;background:#e2e8f0}.fee-status.approved{background:#dcfce7;color:#166534}.fee-status.pending_approval{background:#fef3c7;color:#92400e}.fee-status.rejected{background:#fee2e2;color:#991b1b}.row-actions{display:flex;gap:6px}.fee-page button.danger{background:#dc2626}.fee-placeholder{padding:24px;border:1px dashed #cbd5e1;border-radius:10px;background:#f8fafc}.fee-modal-backdrop{position:fixed;inset:0;z-index:2100;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px}.fee-package-modal{width:min(1120px,97vw);max-height:90vh;overflow:auto;background:#fff;border-radius:12px;box-shadow:0 24px 70px rgba(15,23,42,.3)}.fee-modal-header{position:sticky;top:0;z-index:2;background:#fff;display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #e2e8f0}.fee-modal-header h3{margin:0 0 3px}.fee-modal-header p{margin:0;color:#64748b}.fee-close{width:34px;height:34px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;font-size:22px}.fee-package-body{padding:14px 16px}.fee-full{width:100%}.fee-package-lines{margin-top:12px;border:1px solid #dbe4f0;border-radius:9px;overflow:hidden}.fee-package-head,.fee-package-row{display:grid;grid-template-columns:1.4fr .7fr 1fr .7fr .7fr 1.3fr;gap:8px;align-items:center;padding:8px 10px}.fee-package-head{background:#f1f5f9;font-size:12px}.fee-package-row{border-top:1px solid #e2e8f0}.fee-package-totals{display:flex;justify-content:flex-end;gap:22px;padding:12px 2px}.fee-modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid #e2e8f0;background:#fff;position:sticky;bottom:0}.fee-modal-actions .secondary{background:#fff;color:#334155;border:1px solid #cbd5e1}@media(max-width:1000px){.fee-head-grid{grid-template-columns:repeat(2,minmax(150px,1fr))}.fee-package-head,.fee-package-row{grid-template-columns:1fr 100px 120px 90px 100px 1fr}}@media(max-width:700px){.fee-grid-2,.fee-head-grid{grid-template-columns:1fr}.fee-module-nav{overflow:auto}.fee-package-head{display:none}.fee-package-row{grid-template-columns:1fr 1fr}.fee-package-totals{flex-direction:column;gap:5px}.fee-form-footer{align-items:flex-start;gap:10px;flex-direction:column}}
+
+/* v3.30 - Fee Structure creation and module-tab visibility */
+.fee-module-nav button{
+  color:#0f172a!important;
+  background:#fff!important;
+  border-color:#cbd5e1!important;
+}
+.fee-module-nav button:hover{
+  background:#eef4ff!important;
+  color:#173b8f!important;
+}
+.fee-module-nav button.active{
+  background:#2457e6!important;
+  color:#fff!important;
+  border-color:#2457e6!important;
+}
+.fee-title-row{gap:16px}
+.fee-primary-action{
+  flex:0 0 auto;
+  border:0;
+  border-radius:8px;
+  padding:9px 14px;
+  background:#2457e6;
+  color:#fff!important;
+  font-weight:800;
+  cursor:pointer;
+}
+.fee-structure-modal{
+  width:min(980px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 24px 70px rgba(15,23,42,.3);
+}
+.fee-structure-modal-body{padding:14px 16px 16px}
+.fee-structure-modal-actions{
+  align-items:center;
+  justify-content:space-between;
+}
+.fee-structure-modal-actions>div{display:flex;gap:8px}
+@media(max-width:700px){
+  .fee-title-row{align-items:flex-start;flex-direction:column}
+  .fee-structure-modal-actions{align-items:flex-start;flex-direction:column}
+}
+
+/* v3.31 - billing cycle, default installments, simplified discounts and fee posting */
+.fee-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fee-package-head.simple,.fee-package-row.simple{grid-template-columns:1.5fr .8fr .8fr .8fr}
+.fee-installment-box{margin-top:16px;border:1px solid #dbe4f0;border-radius:10px;overflow:hidden;background:#fbfdff}
+.fee-installment-title{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;padding:10px 12px;background:#f1f5f9}
+.fee-installment-title>div:first-child{display:grid;gap:2px}.fee-installment-title small{color:#64748b}
+.fee-inline-controls{display:flex;align-items:flex-end;gap:8px}.fee-inline-controls label{display:grid;gap:4px}.fee-inline-controls label span{font-size:11px;font-weight:800;color:#475569}.fee-inline-controls select{min-height:34px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;padding:6px 8px}
+.fee-inline-controls .secondary{min-height:34px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:700;padding:6px 10px}
+.fee-installment-head,.fee-installment-row{display:grid;grid-template-columns:45px 1.2fr 1fr 1fr;gap:8px;align-items:center;padding:8px 10px}.fee-installment-head{font-size:12px;border-top:1px solid #dbe4f0;background:#f8fafc}.fee-installment-row{border-top:1px solid #eef2f7}.fee-installment-row input{min-height:35px;border:1px solid #cbd5e1;border-radius:7px;padding:6px 8px}
+.fee-installment-total{text-align:right;padding:9px 12px;border-top:1px solid #dbe4f0;background:#f8fafc}.fee-installment-total.mismatch{color:#b45309;background:#fffbeb}
+.fee-default-plan-preview{display:grid;gap:5px;margin:12px 0;padding:10px 12px;border:1px solid #dbe4f0;border-radius:9px;background:#f8fafc}.fee-default-plan-preview>span,.fee-default-plan-preview small{color:#64748b}
+.fee-posting-summary{display:flex;gap:12px;margin:12px 0}.fee-posting-summary span{padding:8px 10px;border:1px solid #dbe4f0;border-radius:8px;background:#f8fafc}
+.fee-arrear-list{display:grid;gap:5px;padding:10px 12px;border:1px solid #fecaca;border-radius:9px;background:#fff7f7}.fee-arrear-list span{font-size:13px}
+.fee-additional-title{display:flex;justify-content:space-between;align-items:center}.fee-additional-title button{border:0;border-radius:7px;background:#2457e6;color:#fff;padding:7px 10px;font-weight:700}
+.fee-additional-row{display:grid;grid-template-columns:1.2fr .7fr 1.4fr auto;gap:8px;margin-bottom:8px}.fee-additional-row input,.fee-additional-row select{min-height:36px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;padding:7px 9px}.fee-additional-row button{border:0;border-radius:7px;padding:7px 10px;color:#fff;font-weight:700}
+.fee-voucher-preview{display:flex;align-items:center;justify-content:flex-end;gap:16px;flex-wrap:wrap;margin-top:14px;padding:10px 12px;border-top:1px solid #e2e8f0;background:#f8fafc}.fee-voucher-preview b{font-size:16px;color:#173b8f}
+.fee-payment-head,.fee-payment-row{display:grid;grid-template-columns:1fr 1.8fr .8fr .8fr;gap:8px;align-items:center;padding:8px 10px}.fee-payment-head{background:#f1f5f9;border:1px solid #dbe4f0;border-radius:8px 8px 0 0;font-size:12px}.fee-payment-row{border:1px solid #e2e8f0;border-top:0}.fee-payment-row span:nth-child(2){display:grid}.fee-payment-row small{color:#64748b}.fee-payment-row input{min-height:35px;border:1px solid #cbd5e1;border-radius:7px;padding:6px 8px}.fee-payment-meta{margin-top:14px}
+@media(max-width:900px){.fee-grid-3{grid-template-columns:1fr 1fr}.fee-additional-row{grid-template-columns:1fr 1fr}.fee-payment-head,.fee-payment-row{grid-template-columns:1fr 1.4fr .8fr .8fr}}
+@media(max-width:650px){.fee-grid-3{grid-template-columns:1fr}.fee-installment-title{align-items:flex-start;flex-direction:column}.fee-installment-head{display:none}.fee-installment-row{grid-template-columns:35px 1fr}.fee-additional-row,.fee-payment-row{grid-template-columns:1fr}.fee-payment-head{display:none}.fee-voucher-preview{justify-content:flex-start}}
+
+/* v3.32 - per-head fee cycle and compact two-head rows */
+.fee-head-pair-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px 14px;
+}
+.fee-head-compact{
+  display:grid;
+  grid-template-columns:24px minmax(130px,1fr) minmax(105px,.8fr) minmax(120px,.8fr);
+  gap:7px;
+  align-items:center;
+  min-width:0;
+  padding:6px 8px;
+  border:1px solid #e2e8f0;
+  border-radius:8px;
+  background:#fbfdff;
+}
+.fee-head-compact strong{
+  font-size:12px;
+  line-height:1.2;
+  color:#334155;
+}
+.fee-head-number{
+  font-size:12px;
+  font-weight:800;
+  color:#64748b;
+}
+.fee-head-compact input,
+.fee-head-compact select{
+  width:100%;
+  min-width:0;
+  min-height:32px;
+  box-sizing:border-box;
+  padding:5px 7px;
+  border:1px solid #cbd5e1;
+  border-radius:6px;
+  background:#fff;
+  font-size:13px;
+}
+.fee-annual-schedules{margin-top:12px}
+.fee-tight-note{margin:-3px 0 8px;font-size:12px}
+.fee-head-installment-box{margin-top:8px}
+.fee-structure-modal-body{padding-top:10px}
+.fee-structure-modal .fee-section-label{margin:10px 0 6px}
+.fee-structure-modal .fee-checks{gap:5px 16px}
+@media(max-width:900px){
+  .fee-head-pair-grid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .fee-head-compact{grid-template-columns:24px 1fr}
+  .fee-head-compact input,.fee-head-compact select{grid-column:2}
+}
+
+
+/* v3.36 - automatic structure selection, recurrence types, modal close visibility */
+.fee-close{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 34px;
+  color:#0f172a!important;
+  background:#fff!important;
+  border:1px solid #94a3b8!important;
+  font-size:24px!important;
+  line-height:1!important;
+  font-weight:700!important;
+  cursor:pointer!important;
+  opacity:1!important;
+}
+.fee-close:hover{background:#f1f5f9!important;color:#dc2626!important;border-color:#cbd5e1!important}
+.fee-modal-header{padding-right:14px!important}
+.fee-auto-structure{display:grid;gap:3px;padding:9px 11px;border:1px solid #dbe4f0;border-radius:8px;background:#f8fafc;margin-bottom:10px}
+.fee-auto-structure>span{font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.03em}
+.fee-auto-structure>strong{color:#0f172a}.fee-auto-structure>small{color:#64748b}
+.fee-type-pill{display:inline-flex;width:max-content;padding:3px 7px;border-radius:999px;background:#eef4ff;color:#173b8f;font-size:11px;font-weight:800}
+.fee-package-head.simple,.fee-package-row.simple{grid-template-columns:1.35fr .6fr .75fr .85fr .75fr!important}
+
+/* v3.37 generated voucher register + reliable modal close buttons */
+.fee-voucher-register-title{margin-top:22px;margin-bottom:8px}
+.fee-voucher-status{display:inline-flex;align-items:center;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:700;text-transform:capitalize;background:#eef2f7;color:#263648}
+.fee-voucher-status.paid{background:#e8f7ee;color:#176b38}
+.fee-voucher-status.partial{background:#fff5dc;color:#8a5a00}
+.fee-voucher-status.cancelled{background:#fdecec;color:#9d2929}
+.fee-close{
+  position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  width:34px!important;height:34px!important;min-width:34px!important;flex:0 0 34px!important;
+  padding:0!important;border:1px solid #cbd5e1!important;border-radius:8px!important;
+  background:#fff!important;color:#172033!important;font-size:24px!important;font-weight:700!important;
+  line-height:1!important;opacity:1!important;visibility:visible!important;z-index:30!important;cursor:pointer!important;
+}
+.fee-close:hover{background:#f3f6fa!important;color:#b42318!important;border-color:#aeb9c7!important}
+.fee-modal-header{position:relative;z-index:2}
+
+/* v3.38 - student/posting filters and voucher type register */
+.fee-list-filters{
+  display:grid;
+  grid-template-columns:minmax(130px,.8fr) minmax(170px,1fr) minmax(120px,.7fr) minmax(150px,.9fr) minmax(150px,.9fr) auto;
+  gap:10px;
+  align-items:end;
+  margin:10px 0 12px;
+  padding:10px;
+  border:1px solid #dbe4f0;
+  border-radius:10px;
+  background:#f8fafc;
+}
+.fee-list-filters label{display:grid;gap:4px;min-width:0}
+.fee-list-filters label span{font-size:11px;font-weight:800;color:#475569}
+.fee-list-filters input,.fee-list-filters select{width:100%;min-width:0;min-height:36px;padding:7px 9px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#0f172a}
+.fee-filter-clear{min-height:36px;padding:7px 12px;white-space:nowrap}
+@media(max-width:1050px){.fee-list-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.fee-list-filters{grid-template-columns:1fr}}
+
+/* v3.39 - unified Student Fee Details workspace */
+.fee-student-basic-card{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  margin:10px 0 12px;
+  border:1px solid #dbe4f0;
+  border-radius:10px;
+  background:#f8fafc;
+}
+.fee-student-basic-card>div,.fee-package-summary-grid>div,.fee-voucher-rule-cards>div{
+  display:grid;gap:3px;padding:9px 10px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;
+}
+.fee-student-basic-card span,.fee-package-summary-grid span,.fee-voucher-rule-cards span{
+  font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.03em;
+}
+.fee-student-basic-card strong,.fee-package-summary-grid strong,.fee-voucher-rule-cards strong{color:#0f172a}
+.fee-student-subnav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:8px;border:1px solid #dbe4f0;border-radius:10px;background:#fff}
+.fee-student-subnav button{background:#eef4ff;color:#173b8f;border:1px solid #d4e1fb}
+.fee-student-subnav button.active{background:#2455e6;color:#fff;border-color:#2455e6}
+.fee-student-subnav button:disabled{opacity:.45;cursor:not-allowed}
+.fee-workspace-panel{padding:12px;border:1px solid #dbe4f0;border-radius:10px;background:#fff}
+.fee-workspace-panel h3{margin:0 0 3px}
+.fee-package-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.fee-voucher-rule-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:10px 0 14px;max-width:720px}
+@media(max-width:900px){
+  .fee-student-basic-card{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fee-package-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  .fee-student-basic-card,.fee-package-summary-grid,.fee-voucher-rule-cards{grid-template-columns:1fr}
+}
+
+/* v3.46 - selectable eligible voucher heads */
+.fee-eligible-box{margin:10px 0 12px;padding:10px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc}
+.fee-eligible-box .fee-section-label{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 0 8px}
+.fee-eligible-box .fee-section-label small{font-weight:500;color:#64748b;text-transform:none;letter-spacing:0}
+.fee-eligible-head{display:grid;grid-template-columns:22px 1fr auto;gap:9px;align-items:center;padding:9px 10px;margin-top:6px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer}
+.fee-eligible-head:hover{border-color:#b8c8e4;background:#fbfdff}
+.fee-eligible-head input{width:16px;height:16px;margin:0}
+.fee-eligible-head span{display:grid;gap:2px;min-width:0}
+.fee-eligible-head span strong{color:#0f172a}
+.fee-eligible-head span small{color:#64748b;font-size:11px}
+.fee-eligible-head>b{white-space:nowrap;color:#173b8f}
+.fee-head-template-checks{margin-top:6px;padding:9px;border:1px solid #dbe4f0;border-radius:9px;background:#f8fafc}
+@media(max-width:620px){
+  .fee-eligible-box .fee-section-label{display:grid}
+  .fee-eligible-head{grid-template-columns:22px 1fr}.fee-eligible-head>b{grid-column:2}
+}
+
+
+/* v3.48 Vouchers & Postings cleanup */
+.fee-voucher-search{display:flex;align-items:flex-end;gap:8px;min-width:min(360px,100%)}
+.fee-voucher-search span{font-size:12px;font-weight:700;color:#475569}
+.fee-voucher-search input{min-width:260px}
+.fee-subsection-heading{margin:18px 0 8px}.fee-subsection-heading h4{margin:0}
+.fee-bulk-voucher-body{max-height:60vh;overflow:auto;display:grid;grid-template-columns:1fr;gap:12px}
+.fee-bulk-voucher-body .fee-program-checks{max-height:150px;overflow:auto;padding:10px;border:1px solid #dbe3ef;border-radius:10px;background:#f8fafc}
+@media(max-width:760px){.fee-voucher-search{width:100%;align-items:stretch;flex-direction:column}.fee-voucher-search input{min-width:0;width:100%}}
+
+/* v3.49 compact voucher register + report workspace */
+.fee-voucher-register-title{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between;gap:14px;width:100%}
+.fee-voucher-register-title h3{margin:0;white-space:nowrap}
+.fee-voucher-search{display:block!important;flex:0 0 300px;max-width:300px;min-width:0!important;margin:0 0 0 auto!important}
+.fee-voucher-search input{width:100%!important;min-width:0!important;margin:0!important}
+.fee-report-controls{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;align-items:end;margin:14px 0 18px;padding:14px;border:1px solid #d9e2f2;border-radius:12px;background:#f8fbff}
+.fee-report-controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700}
+.fee-report-controls input,.fee-report-controls select{min-height:38px}
+.fee-report-result{margin-top:12px}
+@media(max-width:1000px){.fee-report-controls{grid-template-columns:repeat(2,minmax(150px,1fr))}.fee-voucher-search{flex-basis:260px;max-width:260px}}
+@media(max-width:700px){.fee-voucher-register-title{align-items:stretch!important;flex-direction:column!important}.fee-voucher-search{width:100%!important;max-width:none!important;flex-basis:auto;margin:0!important}}
+
+/* Student Fee Details: two-level filters and separate Form/Roll lookup */
+.fee-list-filters-two-level{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:9px;
+  align-items:stretch;
+}
+.fee-filter-level{
+  display:grid;
+  gap:10px;
+  align-items:end;
+  min-width:0;
+}
+.fee-filter-level-primary{
+  grid-template-columns:minmax(180px,.8fr) minmax(250px,1.2fr);
+  max-width:760px;
+}
+.fee-filter-level-secondary{
+  grid-template-columns:minmax(130px,.65fr) minmax(130px,.65fr) minmax(190px,1fr) minmax(190px,1fr) auto;
+}
+.fee-filter-level label{display:grid;gap:4px;min-width:0}
+.fee-filter-level label span{font-size:11px;font-weight:800;color:#475569}
+.fee-filter-level input,.fee-filter-level select{
+  width:100%;min-width:0;min-height:36px;padding:7px 9px;
+  border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#0f172a;
+}
+@media(max-width:1050px){
+  .fee-filter-level-primary{grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}
+  .fee-filter-level-secondary{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fee-filter-level-secondary .fee-filter-clear{width:max-content}
+}
+@media(max-width:650px){
+  .fee-filter-level-primary,.fee-filter-level-secondary{grid-template-columns:1fr}
+}
+
+
+/* Default installment setup */
+.fee-default-installment-card{background:#fff;border:1px solid #d7e0ed;border-radius:10px;padding:14px;margin-bottom:18px}
+.fee-default-installment-selectors{display:grid;grid-template-columns:1fr 1fr 180px;gap:12px;margin-bottom:14px}
+.fee-default-installment-selectors label{display:flex;flex-direction:column;gap:5px}
+.fee-default-installment-selectors span{font-size:12px;font-weight:700;color:#24344f}
+.fee-default-installment-actions{display:flex;justify-content:flex-end;margin-top:12px}
+@media(max-width:800px){.fee-default-installment-selectors{grid-template-columns:1fr}}
+
+/* Fee Structure sub-options */
+.fee-structure-subtabs{display:flex;gap:6px;align-items:center;margin:12px 0 16px;padding:5px;border:1px solid #d8e2f0;border-radius:9px;background:#f8fafc;width:max-content;max-width:100%}
+.fee-structure-subtabs button{background:transparent!important;color:#1e293b!important;border:0!important;border-radius:7px;padding:8px 13px;font-weight:700}
+.fee-structure-subtabs button:hover{background:#eaf1ff!important;color:#1d4ed8!important}
+.fee-structure-subtabs button.active{background:#2558d9!important;color:#fff!important}
+@media(max-width:600px){.fee-structure-subtabs{width:100%}.fee-structure-subtabs button{flex:1}}
+
+/* Generate Vouchers modal: compact structured layout */
+.fee-bulk-voucher-formatted{max-height:62vh;overflow:auto;display:grid;gap:12px;padding:12px 16px 16px}
+.fee-bulk-section{border:1px solid #d9e3f2;border-radius:10px;background:#fff;padding:12px}
+.fee-bulk-section-title{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:10px}
+.fee-bulk-section-title strong{font-size:14px;color:#0f172a}
+.fee-bulk-section-title small{font-size:11px;color:#64748b;font-weight:500;text-align:right}
+.fee-grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fee-choice-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.fee-choice-card{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;min-height:38px;padding:8px 10px;border:1px solid #dbe3ef;border-radius:8px;background:#f8fafc;cursor:pointer;font-size:12px;font-weight:600;color:#1e293b}
+.fee-choice-card:hover{border-color:#9fb7de;background:#f3f7ff}
+.fee-choice-card input{width:15px!important;height:15px!important;min-height:0!important;margin:0!important;flex:0 0 auto}
+.fee-choice-card span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fee-head-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.fee-empty-choice{grid-column:1/-1;padding:14px;text-align:center;color:#64748b;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:8px;font-size:12px}
+.fee-bulk-note{padding:10px 12px;border-radius:8px;background:#f1f5f9;color:#475569;font-size:12px;line-height:1.45}
+@media(max-width:900px){.fee-grid-3,.fee-choice-grid,.fee-head-choice-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.fee-grid-3,.fee-choice-grid,.fee-head-choice-grid{grid-template-columns:1fr}.fee-bulk-section-title{display:grid}.fee-bulk-section-title small{text-align:left}}
+
+
+/* Fee payment safety: numeric payment fields must not change from mouse-wheel scrolling. */
+.fee-payment-row input[type="number"],
+.fee-payment-meta input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.fee-payment-row input[type="number"]::-webkit-outer-spin-button,
+.fee-payment-row input[type="number"]::-webkit-inner-spin-button,
+.fee-payment-meta input[type="number"]::-webkit-outer-spin-button,
+.fee-payment-meta input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fee-semester-note{margin:8px 0 0;font-size:12px;font-weight:700}
+
+/* eduNex — Student Fee Details visual hierarchy refinement (2026-09-21)
+   Styling only: keeps fee calculations, data bindings and workflow unchanged. */
+.fee-student-basic-card{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  padding:12px;
+  margin:10px 0 12px;
+  border:1px solid #d7e0ed;
+  border-radius:12px;
+  background:#f8fafc;
+}
+.fee-student-basic-card>div{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:5px;
+  min-height:58px;
+  padding:10px 12px;
+  border:1px solid #d7e0ed;
+  border-radius:8px;
+  background:#fff;
+  box-shadow:none;
+}
+.fee-student-basic-card span{
+  font-size:12px;
+  line-height:1.25;
+  font-weight:600;
+  color:#334155;
+  text-transform:none;
+  letter-spacing:0;
+}
+.fee-student-basic-card strong{
+  font-size:15px;
+  line-height:1.3;
+  font-weight:600;
+  color:#0f172a;
+}
+/* Keep financial summary visually distinct without turning identity fields into KPI cards. */
+.fee-student-basic-card>div:nth-child(n+7) span{
+  color:#475569;
+  font-weight:600;
+}
+.fee-student-basic-card>div:nth-child(n+7) strong{
+  font-size:16px;
+  font-weight:700;
+  color:#0f172a;
+}
+.fee-student-basic-card>div:nth-child(10) strong{
+  color:#173b8f;
+}
+@media(max-width:900px){
+  .fee-student-basic-card{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  .fee-student-basic-card{grid-template-columns:1fr}
+}
+
+/* eduNex — Student Fee Details compact 2 / 4 / 4 layout (2026-09-21) */
+.fee-student-basic-card{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  padding:10px;
+  margin:8px 0 10px;
+}
+.fee-student-basic-card>div{
+  min-height:48px;
+  padding:7px 10px;
+  gap:3px;
+}
+.fee-student-basic-card>.fee-student-wide{grid-column:span 2}
+.fee-student-basic-card span{font-size:12px;line-height:1.15}
+.fee-student-basic-card strong{font-size:14px;line-height:1.2}
+.fee-student-basic-card>.fee-student-financial strong{font-size:15px;font-weight:700}
+.fee-student-basic-card>.fee-student-balance strong{color:#173b8f}
+@media(max-width:900px){
+  .fee-student-basic-card{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fee-student-basic-card>.fee-student-wide{grid-column:span 1}
+}
+@media(max-width:620px){
+  .fee-student-basic-card{grid-template-columns:1fr}
+  .fee-student-basic-card>.fee-student-wide{grid-column:span 1}
+}

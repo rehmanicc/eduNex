@@ -1,0 +1,1 @@
+const r=require('express').Router();const c=require('./controller');const permit=require('../../middleware/permissions');const P=require('../../constants/permissions');r.get('/dashboard',permit(P.VIEW_REPORTS),c.dashboard);r.get('/student/:studentId/attendance',permit(P.VIEW_REPORTS),c.studentAttendance);module.exports=r;

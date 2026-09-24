@@ -1,0 +1,16 @@
+const r = require('express').Router();
+const c = require('./controller');
+const permit = require('../../middleware/permissions');
+const P = require('../../constants/permissions');
+r.get('/devices', permit(P.MANAGE_BIOMETRIC), c.devices.list);
+r.post('/devices', permit(P.MANAGE_BIOMETRIC), c.devices.create);
+r.put('/devices/:id', permit(P.MANAGE_BIOMETRIC), c.devices.update);
+r.get('/health', permit(P.MANAGE_BIOMETRIC), c.health);
+r.get('/identities', permit(P.MANAGE_BIOMETRIC), c.identities.list);
+r.post('/identities', permit(P.MANAGE_BIOMETRIC), c.identities.create);
+r.put('/identities/:id', permit(P.MANAGE_BIOMETRIC), c.identities.update);
+r.get('/staff-mappings', permit(P.MANAGE_BIOMETRIC), c.staffMappings);
+r.put('/staff-mappings', permit(P.MANAGE_BIOMETRIC), c.saveStaffMapping);
+r.post('/import', permit(P.MANAGE_BIOMETRIC), c.importRows);
+r.get('/events', permit(P.MANAGE_BIOMETRIC), c.events);
+module.exports = r;

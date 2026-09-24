@@ -1,0 +1,12 @@
+const r=require('express').Router();
+const roles=require('../../middleware/roles');
+const c=require('./controller');
+const admin=roles('admin','director');
+r.get('/meta',admin,c.meta);
+r.get('/',admin,c.list);
+r.post('/',admin,c.create);
+r.put('/:id',admin,c.update);
+r.post('/:id/publish',admin,c.publish);
+r.post('/:id/close',admin,c.close);
+r.get('/:id/analytics',admin,c.analytics);
+module.exports=r;

@@ -1,0 +1,52 @@
+.finance-page{padding-bottom:28px}.finance-title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:10px}.finance-title-row h1{margin:0 0 4px}.finance-title-row p{margin:0;color:#64748b}.finance-message{margin:10px 0;padding:9px 12px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;color:#1e3a8a;font-size:14px}.finance-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.finance-stat{border:1px solid #e2e8f0;background:#fff;border-radius:12px;padding:15px;box-shadow:0 3px 10px rgba(15,23,42,.04);display:flex;flex-direction:column;gap:4px}.finance-stat span{color:#64748b;font-size:13px}.finance-stat strong{font-size:24px;color:#0f172a}.finance-stat small{color:#64748b}.finance-stat-wide{grid-column:span 3}.finance-panel{margin-top:16px;border:1px solid #e2e8f0;background:#fff;border-radius:12px;overflow:hidden}.finance-panel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #e2e8f0}.finance-panel-head h3{margin:0;font-size:16px}.finance-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:14px 0}.finance-toolbar h2{font-size:18px;margin:0}.finance-toolbar-actions,.finance-filters,.finance-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.finance-toolbar button,.finance-actions button,.finance-modal-actions button,.finance-filters button{border:1px solid #cbd5e1;background:#fff;padding:8px 11px;border-radius:7px;cursor:pointer}.finance-primary{background:#1d4ed8!important;color:#fff!important;border-color:#1d4ed8!important}.finance-actions button{padding:5px 8px;font-size:12px}.finance-actions .danger{color:#b91c1c;border-color:#fecaca}.finance-filters input,.finance-filters select{height:36px;border:1px solid #cbd5e1;border-radius:7px;padding:0 9px;background:#fff}.finance-table-wrap{overflow:auto}.finance-table{width:100%;border-collapse:collapse;min-width:780px}.finance-table th,.finance-table td{padding:10px 12px;border-bottom:1px solid #edf2f7;text-align:left;vertical-align:top;font-size:13px}.finance-table th{background:#f8fafc;color:#475569;font-weight:650;white-space:nowrap}.finance-table td small{display:block;margin-top:2px;color:#64748b}.finance-table .right{text-align:right}.finance-empty{text-align:center!important;color:#94a3b8;padding:24px!important}.finance-status{display:inline-flex;border-radius:999px;padding:3px 8px;font-size:11px;text-transform:capitalize;background:#f1f5f9;color:#475569;white-space:nowrap}.finance-status-posted{background:#dcfce7;color:#166534}.finance-status-approved{background:#dbeafe;color:#1d4ed8}.finance-status-pending_approval{background:#fef3c7;color:#92400e}.finance-status-reversed{background:#fee2e2;color:#991b1b}.finance-account-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.finance-account-card{text-align:left;border:1px solid #dbe3ee;border-radius:12px;background:#fff;padding:14px;cursor:pointer;display:flex;flex-direction:column;gap:4px}.finance-account-card:hover{border-color:#93c5fd;box-shadow:0 4px 12px rgba(15,23,42,.06)}.finance-account-card span{text-transform:capitalize;color:#64748b;font-size:11px}.finance-account-card strong{font-size:15px}.finance-account-card b{font-size:22px;margin-top:4px}.finance-account-card small{color:#64748b}.finance-head-columns{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:14px}.finance-head-columns h4{margin:0 0 8px}.finance-head-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #e2e8f0;font-size:13px}.finance-head-row small{color:#64748b}.finance-modal-backdrop{position:fixed;inset:0;z-index:90;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;padding:20px}.finance-modal{width:min(760px,96vw);max-height:90vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(15,23,42,.25)}.finance-modal-small{width:min(580px,96vw)}.finance-ledger-modal{width:min(1000px,96vw)}.finance-modal-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #e2e8f0}.finance-modal-head h3{margin:0}.finance-modal-head button{border:0;background:transparent;font-size:24px;cursor:pointer}.finance-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px}.finance-form-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:#475569}.finance-form-grid input,.finance-form-grid select,.finance-form-grid textarea{border:1px solid #cbd5e1;border-radius:7px;padding:8px;font:inherit;color:#0f172a;background:#fff}.finance-form-grid textarea{min-height:76px;resize:vertical}.finance-form-grid .span-2{grid-column:span 2}.finance-modal-actions{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid #e2e8f0}.finance-report-stats{grid-template-columns:repeat(4,minmax(0,1fr))}.finance-report-stats .finance-stat-wide{grid-column:auto}@media(max-width:900px){.finance-stat-grid,.finance-account-grid{grid-template-columns:1fr 1fr}.finance-stat-wide{grid-column:span 2}.finance-head-columns{grid-template-columns:1fr}.finance-report-stats{grid-template-columns:1fr 1fr}}@media(max-width:620px){.finance-stat-grid,.finance-account-grid,.finance-report-stats,.finance-form-grid{grid-template-columns:1fr}.finance-stat-wide,.finance-form-grid .span-2{grid-column:auto}.finance-toolbar{align-items:stretch;flex-direction:column}.finance-filters{width:100%}.finance-filters input,.finance-filters select{flex:1;min-width:130px}}
+@media print{.finance-page .module-top-tabs,.finance-toolbar,.finance-modal-actions,.finance-actions{display:none!important}.finance-panel,.finance-table-wrap{border:0;box-shadow:none}.finance-modal-backdrop{position:static;background:none;padding:0}.finance-modal{width:100%;max-height:none;box-shadow:none}}
+
+/* ===== Finance readability fix v1.01 =====
+   Global CollegeCMS buttons use white text by default. Finance also has
+   white/transparent secondary buttons, so their text must be reset locally. */
+.finance-page .finance-toolbar button,
+.finance-page .finance-actions button,
+.finance-page .finance-modal-actions button,
+.finance-page .finance-filters button{
+  color:#334155;
+  background:#fff;
+  border-color:#cbd5e1;
+}
+.finance-page .finance-primary{
+  background:#1d4ed8!important;
+  color:#fff!important;
+  border-color:#1d4ed8!important;
+}
+.finance-page .finance-actions .danger{
+  color:#b91c1c!important;
+  background:#fff!important;
+  border-color:#fecaca!important;
+}
+.finance-page .finance-account-card{
+  color:#0f172a;
+  background:#fff;
+}
+.finance-page .finance-account-card strong,
+.finance-page .finance-account-card b{
+  color:#0f172a;
+}
+.finance-page .finance-modal-head button{
+  color:#475569;
+  background:transparent;
+}
+.finance-page .finance-filters input,
+.finance-page .finance-filters select,
+.finance-page .finance-form-grid input,
+.finance-page .finance-form-grid select,
+.finance-page .finance-form-grid textarea{
+  color:#0f172a;
+  background:#fff;
+}
+.finance-page select option{
+  color:#0f172a;
+  background:#fff;
+}
+.finance-page button:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+}

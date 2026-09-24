@@ -1,0 +1,1 @@
+const r=require('express').Router();const c=require('./controller');const auth=require('../../middleware/auth');const roles=require('../../middleware/roles'); r.get('/theme/:key',c.getPublicTheme); r.use(auth); r.get('/',roles('platform_owner'),c.list);r.post('/',roles('platform_owner'),c.create);r.put('/:id',roles('platform_owner'),c.update);module.exports=r;

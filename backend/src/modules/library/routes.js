@@ -1,0 +1,6 @@
+const r=require('express').Router(); const permit=require('../../middleware/permissions'); const P=require('../../constants/permissions'); const c=require('./controller');
+r.get('/dashboard',permit(P.VIEW_LIBRARY),c.dashboard); r.get('/books',permit(P.VIEW_LIBRARY),c.listBooks); r.post('/books',permit(P.MANAGE_LIBRARY),c.createBook); r.put('/books/:id',permit(P.MANAGE_LIBRARY),c.updateBook); r.post('/books/import',permit(P.MANAGE_LIBRARY),c.importBooks);
+r.get('/copies',permit(P.VIEW_LIBRARY),c.listCopies); r.post('/books/:bookId/copies',permit(P.MANAGE_LIBRARY),c.addCopy); r.get('/borrowers',permit(P.ISSUE_LIBRARY_BOOKS),c.searchBorrowers);
+r.get('/issues',permit(P.VIEW_LIBRARY),c.listIssues); r.post('/issues',permit(P.ISSUE_LIBRARY_BOOKS),c.issueBook); r.post('/issues/:issueId/return',permit(P.RETURN_LIBRARY_BOOKS),c.returnBook); r.post('/issues/:issueId/renew',permit(P.ISSUE_LIBRARY_BOOKS),c.renewIssue); r.post('/issues/:issueId/fine',permit(P.MANAGE_LIBRARY_FINES),c.settleFine);
+r.get('/reservations',permit(P.VIEW_LIBRARY),c.listReservations); r.post('/books/:bookId/reserve',permit(P.VIEW_LIBRARY),c.reserveBook); r.post('/reservations/:id/cancel',permit(P.VIEW_LIBRARY),c.cancelReservation);
+r.get('/settings',permit(P.VIEW_LIBRARY),c.getSettings); r.put('/settings',permit(P.MANAGE_LIBRARY_SETTINGS),c.updateSettings); module.exports=r;

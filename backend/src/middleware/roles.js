@@ -1,0 +1,1 @@
+module.exports=(...roles)=>(req,res,next)=>{if(req.user?.systemRole==='platform_owner'&&roles.includes('platform_owner'))return next();const aliases=roles.map(r=>r==='college_admin'?'admin':r==='staff'?'staff':r);if((req.user?.roleCodes||[]).some(r=>aliases.includes(r)))return next();return res.status(403).json({error:'Insufficient role'});};

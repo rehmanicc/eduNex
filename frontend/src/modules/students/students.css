@@ -1,0 +1,606 @@
+.students-page{width:min(1060px,100%);max-width:1060px;margin-right:auto}
+.student-detail-backdrop{padding:22px;align-items:flex-start;overflow:auto}.student-detail-modal{width:min(980px,96vw);max-width:980px;margin:18px auto;padding:0;overflow:hidden}.student-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:18px 20px;border-bottom:1px solid #d9e1ec}.student-detail-head h2{margin:0 0 4px}.student-detail-head p{margin:0;color:#667085}.student-detail-section{margin:16px 20px;padding:16px;border:1px solid #dbe3ef;border-radius:10px;background:#fff}.student-detail-section h3{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:17px}.student-detail-section h3 span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 7px;border-radius:999px;background:#eef3f9;color:#526274}.student-reference-grid,.student-edit-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.student-reference-grid label,.student-edit-grid label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#344054}.student-reference-grid input,.student-edit-grid input,.student-edit-grid select,.student-edit-grid textarea{width:100%;box-sizing:border-box}.student-reference-grid input[readonly]{background:#f5f7fa;color:#475467;border-color:#d8dee8;cursor:default}.student-address-field{grid-column:1/-1}.student-fee-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.student-fee-summary>div{padding:14px 16px;border:1px solid #dbe3ef;border-radius:9px;background:#f8fafc}.student-fee-summary small{display:block;margin-bottom:4px;color:#667085;font-size:12px}.student-fee-summary strong{font-size:22px}.student-fee-note{margin:10px 0 0;color:#667085}.student-detail-actions{display:flex;justify-content:flex-end;padding:0 20px 20px}@media(max-width:900px){.student-reference-grid,.student-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.student-detail-backdrop{padding:8px}.student-reference-grid,.student-edit-grid,.student-fee-summary{grid-template-columns:1fr}.student-detail-section{margin:10px}.student-detail-head{padding:14px}.student-detail-actions{padding:0 10px 14px}}
+
+.student-detail-inline{width:100%;padding-top:8px}.student-detail-inline .student-detail-modal{width:100%;max-width:980px;margin:0 auto;background:#fff;border:1px solid #dbe3ef;border-radius:10px}.table-pager{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 2px 4px;font-size:12px;color:#667085}.table-pager>div{display:flex;align-items:center;gap:8px}.table-pager button{min-width:72px}.table-pager button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:600px){.table-pager{align-items:flex-start;flex-direction:column}}
+
+/* v3.90: keep the Students custom pager readable like the shared Pagination component. */
+.students-page .table-pager button,
+.table-pager button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:72px!important;
+  min-height:32px!important;
+  padding:6px 10px!important;
+  border:1px solid #cbd5e1!important;
+  border-radius:6px!important;
+  background:#ffffff!important;
+  color:#334155!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  line-height:1.2!important;
+  opacity:1!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  visibility:visible!important;
+}
+.students-page .table-pager button:hover:not(:disabled),
+.table-pager button:hover:not(:disabled){
+  background:#eff6ff!important;
+  border-color:#93c5fd!important;
+  color:#1d4ed8!important;
+}
+.students-page .table-pager button:disabled,
+.table-pager button:disabled{
+  background:#f1f5f9!important;
+  border-color:#dbe3ee!important;
+  color:#64748b!important;
+  opacity:1!important;
+  cursor:not-allowed!important;
+}
+
+.section-allocation-panel{margin-top:18px}.section-allocation-panel h3{margin-top:0}.section-allocation-actions{margin:12px 0 8px}.section-allocation-panel table{margin-top:8px}
+
+.section-subtabs{display:flex;gap:8px;margin:8px 0 14px;padding:4px;border:1px solid #dbe3ee;border-radius:9px;background:#f8fafc;width:max-content;max-width:100%}
+.section-subtabs button{background:transparent;color:#0f172a;border:0;padding:8px 14px;font-weight:700}
+.section-subtabs button.active{background:var(--primary);color:#fff}
+
+.student-progress-identity{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:9px;padding:12px;border:1px solid #dbe4f0;border-radius:11px;background:#fff}
+.student-progress-identity>div{display:flex;flex-direction:column;gap:3px}
+.student-progress-identity>div:first-child strong{font-size:17px;color:#0f172a}
+.student-progress-identity span{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:800;letter-spacing:.035em}
+.student-progress-identity b{font-size:12px;color:#0f172a}
+@media(max-width:800px){.student-progress-identity{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.student-progress-identity{grid-template-columns:1fr}}
+
+
+/* ===== Student Progress Report: reliable standalone A4 print ===== */
+@media print{
+  @page{size:A4 portrait;margin:12mm}
+
+  html,
+  body,
+  #root{
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+
+  body:has(.student-progress-report) .app-shell,
+  body:has(.student-progress-report) .app-content-column,
+  body:has(.student-progress-report) main,
+  body:has(.student-progress-report) .app-page-area,
+  body:has(.student-progress-report) .students-page,
+  body:has(.student-progress-report) .students-reports-section{
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    position:static!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  body:has(.student-progress-report) .app-logo-pane,
+  body:has(.student-progress-report) .app-top-banner,
+  body:has(.student-progress-report) .app-navigation-pane,
+  body:has(.student-progress-report) .app-footer-full,
+  body:has(.student-progress-report) .students-page>h1,
+  body:has(.student-progress-report) .students-page>.tabs,
+  body:has(.student-progress-report) .students-report-subtabs,
+  body:has(.student-progress-report) .students-page>.error,
+  body:has(.student-progress-report) .students-page>.success,
+  body:has(.student-progress-report) .student-progress-report .cms-report-filterbar,
+  body:has(.student-progress-report) .student-progress-report .cms-report-head button{
+    display:none!important;
+  }
+
+  body:has(.student-progress-report) .students-page>*:not(.students-reports-section),
+  body:has(.student-progress-report) .students-reports-section>*:not(.student-progress-report){
+    display:none!important;
+  }
+
+  .student-progress-report{
+    display:block!important;
+    visibility:visible!important;
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    color:#111827!important;
+    background:#fff!important;
+  }
+
+  .student-progress-report *{
+    visibility:visible!important;
+  }
+
+  .student-progress-report .cms-report-head{
+    display:block!important;
+    margin:0 0 10px!important;
+    padding:0 0 8px!important;
+    border:0!important;
+    border-bottom:2px solid #0f172a!important;
+    border-radius:0!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+
+  .student-progress-report .cms-report-head h2{
+    margin:0!important;
+    font-size:20px!important;
+    line-height:1.2!important;
+  }
+
+  .student-progress-report .cms-report-head p{
+    margin:3px 0 0!important;
+    font-size:10px!important;
+  }
+
+  .student-progress-report .student-progress-identity{
+    display:grid!important;
+    grid-template-columns:1.2fr repeat(3,1fr)!important;
+    gap:6px!important;
+    margin:0 0 9px!important;
+    padding:8px!important;
+    border:1px solid #cbd5e1!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+
+  .student-progress-report .cms-report-kpis{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:6px!important;
+    margin:0 0 9px!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+
+  .student-progress-report .cms-report-kpi{
+    min-height:58px!important;
+    padding:7px 8px!important;
+    border:1px solid #cbd5e1!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:#fff!important;
+  }
+
+  .student-progress-report .cms-report-kpi strong{
+    font-size:16px!important;
+  }
+
+  .student-progress-report .cms-report-table-card{
+    display:block!important;
+    margin:0 0 10px!important;
+    border:1px solid #cbd5e1!important;
+    border-radius:0!important;
+    overflow:visible!important;
+    box-shadow:none!important;
+    break-inside:auto!important;
+    page-break-inside:auto!important;
+  }
+
+  .student-progress-report .cms-report-table-title{
+    padding:7px 8px!important;
+    background:#f8fafc!important;
+    border-bottom:1px solid #cbd5e1!important;
+  }
+
+  .student-progress-report .cms-report-table-title h3{
+    font-size:13px!important;
+    margin:0!important;
+  }
+
+  .student-progress-report .cms-report-table-title p{
+    font-size:9px!important;
+  }
+
+  .student-progress-report .cms-report-table-wrap{
+    display:block!important;
+    width:100%!important;
+    overflow:visible!important;
+  }
+
+  .student-progress-report table{
+    width:100%!important;
+    table-layout:auto!important;
+    border-collapse:collapse!important;
+    font-size:9px!important;
+  }
+
+  .student-progress-report thead{
+    display:table-header-group!important;
+  }
+
+  .student-progress-report tr{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+
+  .student-progress-report th,
+  .student-progress-report td{
+    padding:5px 6px!important;
+    border-bottom:1px solid #e2e8f0!important;
+    color:#111827!important;
+    background:#fff!important;
+  }
+
+  .student-progress-report th{
+    background:#f1f5f9!important;
+    font-size:8.5px!important;
+    font-weight:700!important;
+    text-transform:uppercase!important;
+  }
+}
+
+
+/* ===== Students > Reports ===== */
+.students-reports-section{display:flex;flex-direction:column;gap:10px}
+.students-report-subtabs{margin:0 0 2px}
+.student-report-options{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(180px,.8fr) auto;gap:14px;align-items:start;padding:12px;border:1px solid #dbe4f0;border-radius:10px;background:#fff}
+.student-report-options h3{margin:0 0 9px;font-size:13px;color:#0f172a}
+.student-report-column-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 10px}
+.student-report-column-grid label,.student-report-extra label{display:flex;align-items:center;gap:7px;font-size:12px;color:#334155;font-weight:600}
+.student-report-extra{display:flex;flex-direction:column;gap:8px}
+.student-report-actions{display:flex;flex-direction:column;gap:8px;min-width:150px}
+.student-report-preview{margin-top:2px}
+.student-report-write-cell{min-width:120px;height:30px}
+.student-list-report .cms-report-table-wrap th,.student-list-report .cms-report-table-wrap td{white-space:nowrap}
+@media(max-width:900px){
+  .student-report-options{grid-template-columns:1fr}
+  .student-report-column-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .student-report-actions{flex-direction:row}
+}
+@media(max-width:560px){
+  .student-report-column-grid{grid-template-columns:1fr}
+}
+
+/* Student list report prints only the generated selected-column report. */
+@media print{
+  body:has(.student-list-report) .app-logo-pane,
+  body:has(.student-list-report) .app-top-banner,
+  body:has(.student-list-report) .app-navigation-pane,
+  body:has(.student-list-report) .app-footer-full,
+  body:has(.student-list-report) .students-page>h1,
+  body:has(.student-list-report) .students-page>.tabs,
+  body:has(.student-list-report) .students-report-subtabs,
+  body:has(.student-list-report) .student-list-report .cms-report-filterbar,
+  body:has(.student-list-report) .student-list-report .student-report-options,
+  body:has(.student-list-report) .student-list-report .cms-report-head button{
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .students-page>*:not(.students-reports-section),
+  body:has(.student-list-report) .students-reports-section>*:not(.student-list-report),
+  body:has(.student-list-report) .student-list-report>*:not(.cms-report-head):not(.student-report-preview){
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .app-shell,
+  body:has(.student-list-report) .app-content-column,
+  body:has(.student-list-report) main,
+  body:has(.student-list-report) .app-page-area,
+  body:has(.student-list-report) .students-page,
+  body:has(.student-list-report) .students-reports-section,
+  body:has(.student-list-report) .student-list-report{
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    position:static!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  .student-list-report .student-report-preview{display:block!important;border:1px solid #cbd5e1!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  .student-list-report .cms-report-head{display:block!important}
+  .student-list-report table{width:100%!important;border-collapse:collapse!important;font-size:9px!important}
+  .student-list-report thead{display:table-header-group!important}
+  .student-list-report tr{break-inside:avoid!important;page-break-inside:avoid!important}
+  .student-list-report th,.student-list-report td{padding:5px 6px!important;border:1px solid #dbe3ee!important;white-space:normal!important}
+  .student-list-report .student-report-write-cell{min-width:100px!important;height:28px!important}
+}
+
+
+/* ===== Student List Report: reliable scoped A4 printing ===== */
+@media print{
+  
+
+  html,body,#root{
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    background:#fff!important;
+  }
+
+  body:has(.student-list-report) .app-shell,
+  body:has(.student-list-report) .app-content-column,
+  body:has(.student-list-report) main,
+  body:has(.student-list-report) .app-page-area,
+  body:has(.student-list-report) .students-page,
+  body:has(.student-list-report) .students-reports-section,
+  body:has(.student-list-report) .student-list-report{
+    display:block!important;
+    visibility:visible!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+    position:static!important;
+    margin:0!important;
+    padding:0!important;
+    background:#fff!important;
+  }
+
+  body:has(.student-list-report) .student-list-report *{
+    visibility:visible!important;
+  }
+
+  body:has(.student-list-report) .app-logo-pane,
+  body:has(.student-list-report) .app-top-banner,
+  body:has(.student-list-report) .app-navigation-pane,
+  body:has(.student-list-report) .app-footer-full,
+  body:has(.student-list-report) .students-page>h1,
+  body:has(.student-list-report) .students-page>.tabs,
+  body:has(.student-list-report) .students-report-subtabs,
+  body:has(.student-list-report) .student-list-report .cms-report-filterbar,
+  body:has(.student-list-report) .student-list-report .student-report-options,
+  body:has(.student-list-report) .student-list-report .cms-report-head button{
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .students-page>*:not(.students-reports-section){
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .students-reports-section>*:not(.student-list-report){
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .student-list-report>*:not(.cms-report-head):not(.student-report-preview){
+    display:none!important;
+  }
+
+  .student-list-report .cms-report-head{
+    display:block!important;
+    margin:0 0 9px!important;
+    padding:0 0 8px!important;
+    border:0!important;
+    border-bottom:2px solid #0f172a!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+  }
+
+  .student-list-report .cms-report-head h2{
+    margin:0!important;
+    font-size:18px!important;
+    line-height:1.2!important;
+  }
+
+  .student-list-report .cms-report-head p{
+    margin:3px 0 0!important;
+    font-size:9px!important;
+  }
+
+  .student-list-report .student-report-preview{
+    display:block!important;
+    visibility:visible!important;
+    width:100%!important;
+    margin:0!important;
+    border:1px solid #cbd5e1!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    break-inside:auto!important;
+    page-break-inside:auto!important;
+  }
+
+  .student-list-report .cms-report-table-title{
+    display:block!important;
+    padding:7px 8px!important;
+    background:#f8fafc!important;
+    border-bottom:1px solid #cbd5e1!important;
+  }
+
+  .student-list-report .cms-report-table-title h3{
+    margin:0!important;
+    font-size:13px!important;
+  }
+
+  .student-list-report .cms-report-table-title p{
+    margin:2px 0 0!important;
+    font-size:8.5px!important;
+  }
+
+  .student-list-report .cms-report-table-wrap{
+    display:block!important;
+    width:100%!important;
+    overflow:visible!important;
+  }
+
+  .student-list-report table{
+    display:table!important;
+    width:100%!important;
+    table-layout:auto!important;
+    border-collapse:collapse!important;
+    font-size:8.5px!important;
+  }
+
+  .student-list-report thead{display:table-header-group!important}
+  .student-list-report tbody{display:table-row-group!important}
+  .student-list-report tr{
+    display:table-row!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+
+  .student-list-report th,
+  .student-list-report td{
+    display:table-cell!important;
+    padding:5px 6px!important;
+    border:1px solid #dbe3ee!important;
+    color:#111827!important;
+    background:#fff!important;
+    white-space:normal!important;
+    vertical-align:top!important;
+  }
+
+  .student-list-report th{
+    background:#f1f5f9!important;
+    font-weight:700!important;
+    text-transform:uppercase!important;
+    font-size:8px!important;
+  }
+
+  .student-list-report .student-report-write-cell{
+    min-width:105px!important;
+    height:26px!important;
+  }
+}
+
+.student-report-builder .student-report-name-field{min-width:230px}
+.student-report-builder .student-report-name-field input{font-weight:600}
+
+
+/* ===== Student Report sample print layout ===== */
+@media print{
+  body:has(.student-list-report) .student-list-report .cms-report-head{
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .student-list-print-title{
+    display:flex!important;
+    visibility:visible!important;
+  }
+
+  body:has(.student-list-report) .student-list-report>*:not(.cms-report-head):not(.cms-print-report-title):not(.student-report-preview){
+    display:none!important;
+  }
+
+  .student-list-report .student-report-preview{
+    border:0!important;
+  }
+
+  .student-list-report .cms-report-table-title{
+    padding:0 0 6px!important;
+    border:0!important;
+    background:#fff!important;
+  }
+
+  .student-list-report .cms-report-table-title h3{
+    display:none!important;
+  }
+
+  .student-list-report .cms-report-table-title p{
+    margin:0!important;
+    font-size:9px!important;
+    color:#334155!important;
+  }
+}
+
+
+/* ===== Student Report print orientation + stronger report title ===== */
+@page studentPortrait{size:A4 portrait;margin:10mm}
+@page studentLandscape{size:A4 landscape;margin:10mm}
+
+@media print{
+  body:has(.student-list-report.print-portrait) .app-page-area{page:studentPortrait}
+  body:has(.student-list-report.print-landscape) .app-page-area{page:studentLandscape}
+
+  .student-list-report .student-list-print-title{
+    min-height:38px!important;
+    padding:8px 10px!important;
+    margin:0 0 12px!important;
+    font-size:20px!important;
+    line-height:1.2!important;
+    font-weight:800!important;
+    letter-spacing:.01em!important;
+  }
+}
+
+
+/* ===== Student Report: keep header, report name and contents on the same first page ===== */
+.student-report-print-name{display:none}
+
+@media print{
+  body:has(.student-list-report) .app-page-area,
+  body:has(.student-list-report) .students-page,
+  body:has(.student-list-report) .students-reports-section,
+  body:has(.student-list-report) .student-list-report,
+  body:has(.student-list-report) .student-report-preview{
+    break-before:auto!important;
+    page-break-before:auto!important;
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+
+  body:has(.student-list-report) .cms-global-print-brand{
+    break-after:avoid!important;
+    page-break-after:avoid!important;
+    margin-bottom:0!important;
+  }
+
+  body:has(.student-list-report) .student-list-report{
+    margin-top:0!important;
+    padding-top:0!important;
+  }
+
+  body:has(.student-list-report) .student-list-print-title{
+    display:none!important;
+  }
+
+  body:has(.student-list-report) .student-report-print-name{
+    display:flex!important;
+    visibility:visible!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:100%!important;
+    min-height:38px!important;
+    margin:0 0 8px!important;
+    padding:7px 10px!important;
+    border-bottom:1.5px solid #111827!important;
+    color:#111827!important;
+    background:#fff!important;
+    font-size:20px!important;
+    line-height:1.2!important;
+    font-weight:800!important;
+    letter-spacing:.01em!important;
+    text-align:center!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+    break-after:avoid!important;
+    page-break-after:avoid!important;
+  }
+
+  body:has(.student-list-report) .student-report-preview{
+    display:block!important;
+    margin-top:0!important;
+    padding-top:0!important;
+    break-before:avoid!important;
+    page-break-before:avoid!important;
+  }
+
+  body:has(.student-list-report) .student-report-preview .cms-report-table-title{
+    break-before:avoid!important;
+    page-break-before:avoid!important;
+  }
+
+  body:has(.student-list-report) .student-report-preview table{
+    break-before:avoid!important;
+    page-break-before:avoid!important;
+  }
+}

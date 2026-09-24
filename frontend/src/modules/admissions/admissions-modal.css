@@ -1,0 +1,620 @@
+.admission-toolbar{
+  display:flex;
+  justify-content:flex-end;
+  margin:14px 0;
+}
+
+.admission-primary-action{
+  background:#2457e6;
+  color:#fff;
+  border:0;
+  border-radius:8px;
+  padding:10px 16px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.admission-primary-action:disabled{
+  opacity:.6;
+  cursor:not-allowed;
+}
+
+.admission-secondary-action{
+  background:#fff;
+  color:#334155;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  padding:10px 16px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.admission-modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:2000;
+  background:rgba(15,23,42,.52);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+}
+
+.admission-modal{
+  width:min(860px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 24px 70px rgba(15,23,42,.3);
+}
+
+.admission-modal-header{
+  position:sticky;
+  top:0;
+  z-index:1;
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:flex-start;
+  padding:18px 20px;
+  background:#fff;
+  border-bottom:1px solid #e2e8f0;
+}
+
+.admission-modal-header h3{
+  margin:0 0 4px;
+  font-size:20px;
+}
+
+.admission-modal-header p{
+  margin:0;
+  color:#64748b;
+}
+
+.admission-modal-close{
+  width:36px;
+  height:36px;
+  border:1px solid #cbd5e1 !important;
+  background:#fff !important;
+  color:#0f172a !important;
+  border-radius:8px;
+  font-size:24px;
+  font-weight:700;
+  line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  cursor:pointer;
+}
+
+.admission-modal-close:hover:not(:disabled){
+  background:#f1f5f9 !important;
+  color:#1d4ed8 !important;
+}
+
+.admission-modal-close:disabled{
+  color:#94a3b8 !important;
+  background:#f8fafc !important;
+  cursor:not-allowed;
+}
+
+.admission-modal-form{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+  padding:20px;
+}
+
+.admission-modal-form label{
+  display:grid;
+  gap:6px;
+}
+
+.admission-modal-form label span{
+  color:#475569;
+  font-size:12px;
+  font-weight:800;
+}
+
+.admission-modal-form input,
+.admission-modal-form select{
+  width:100%;
+  min-height:42px;
+  box-sizing:border-box;
+  border:1px solid #cbd5e1;
+  border-radius:8px;
+  background:#fff;
+  padding:9px 11px;
+}
+
+.admission-modal-form input:focus,
+.admission-modal-form select:focus{
+  outline:none;
+  border-color:#3b82f6;
+  box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+
+.admission-modal-wide{
+  grid-column:1/-1;
+}
+
+.admission-modal-actions{
+  grid-column:1/-1;
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+  padding-top:8px;
+  border-top:1px solid #eef2f7;
+}
+
+@media(max-width:700px){
+  .admission-modal-form{
+    grid-template-columns:1fr;
+  }
+
+  .admission-modal-wide,
+  .admission-modal-actions{
+    grid-column:1;
+  }
+}
+
+
+.admission-modal-large{
+  width:min(1040px,96vw);
+}
+
+.admission-results-grid{
+  display:grid;
+  gap:12px;
+}
+
+.admission-result-card{
+  border:1px solid #dbe4f0;
+  border-radius:10px;
+  padding:12px;
+  background:#f8fbff;
+}
+
+.admission-result-title{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:center;
+  margin-bottom:10px;
+}
+
+.admission-result-title span{
+  font-size:11px;
+  font-weight:800;
+  color:#64748b;
+}
+
+.admission-result-fields{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(120px,1fr));
+  gap:10px;
+}
+
+.admission-result-empty{
+  grid-column:1/-1;
+  padding:12px;
+  border:1px dashed #cbd5e1;
+  border-radius:9px;
+  color:#64748b;
+  background:#f8fafc;
+}
+
+.admission-readonly-card{
+  display:grid;
+  gap:4px;
+  padding:12px;
+  border:1px solid #cbd5e1;
+  border-radius:9px;
+  background:#f8fafc;
+}
+
+.admission-readonly-card small{
+  color:#64748b;
+}
+
+.admission-check-row{
+  display:flex!important;
+  align-items:center;
+  gap:8px!important;
+}
+
+.admission-check-row input{
+  width:auto!important;
+  min-height:auto!important;
+}
+
+.admission-photo-preview{
+  display:flex;
+  align-items:center;
+}
+
+.admission-photo-preview img{
+  width:96px;
+  height:96px;
+  border-radius:10px;
+  object-fit:cover;
+  border:1px solid #cbd5e1;
+}
+
+@media(max-width:760px){
+  .admission-result-fields{
+    grid-template-columns:1fr;
+  }
+}
+
+.admission-filterbar{
+  display:flex;
+  align-items:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:12px 0 14px;
+  padding:10px 12px;
+  border:1px solid #dbe4f0;
+  border-radius:9px;
+  background:#f8fafc;
+}
+
+.admission-filterbar label{
+  display:grid;
+  gap:5px;
+}
+
+.admission-filterbar label span{
+  color:#475569;
+  font-size:12px;
+  font-weight:800;
+}
+
+.admission-filterbar select,
+.admission-filterbar input{
+  min-height:38px;
+  box-sizing:border-box;
+  border:1px solid #cbd5e1;
+  border-radius:7px;
+  background:#fff;
+  padding:8px 10px;
+}
+
+.admission-filterbar select{
+  min-width:155px;
+}
+
+.admission-filter-value{
+  flex:1;
+  min-width:230px;
+}
+
+.admission-filter-value input{
+  width:100%;
+}
+
+.admission-filterbar select:focus,
+.admission-filterbar input:focus{
+  outline:none;
+  border-color:#3b82f6;
+  box-shadow:0 0 0 3px rgba(59,130,246,.10);
+}
+
+.admission-filter-clear{
+  min-height:38px;
+  border:1px solid #cbd5e1;
+  border-radius:7px;
+  background:#fff;
+  color:#334155;
+  padding:8px 12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+
+/* Keep status tabs and admissions filter on one toolbar row. */
+.admission-tabs-filter-row{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:16px;
+  flex-wrap:wrap;
+  margin:12px 0 14px;
+}
+
+.admission-tabs-filter-row .tabs{
+  margin:0;
+  flex:0 0 auto;
+}
+
+.admission-tabs-filter-row .admission-filterbar{
+  margin:0 0 0 auto;
+  padding:0;
+  border:0;
+  background:transparent;
+  flex:1 1 430px;
+  justify-content:flex-end;
+}
+
+.admission-tabs-filter-row .admission-filter-value{
+  flex:0 1 300px;
+}
+
+@media(max-width:900px){
+  .admission-tabs-filter-row{
+    align-items:stretch;
+  }
+  .admission-tabs-filter-row .admission-filterbar{
+    margin-left:0;
+    justify-content:flex-start;
+  }
+}
+
+/* v3.25 - Compact Inquiry / Admission forms */
+.admission-modal{
+  max-height:86vh;
+}
+
+.admission-modal-large{
+  width:min(1120px,94vw);
+}
+
+.admission-modal-header{
+  padding:12px 16px;
+}
+
+.admission-modal-header h3{
+  font-size:18px;
+  margin-bottom:2px;
+}
+
+.admission-modal-header p{
+  font-size:13px;
+}
+
+.admission-modal-close{
+  width:32px;
+  height:32px;
+  font-size:21px;
+}
+
+.admission-modal-form{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px 12px;
+  padding:14px 16px;
+}
+
+.admission-modal-form label{
+  gap:4px;
+}
+
+.admission-modal-form label span{
+  font-size:11px;
+}
+
+.admission-modal-form input,
+.admission-modal-form select{
+  min-height:36px;
+  padding:7px 9px;
+  border-radius:7px;
+  font-size:14px;
+}
+
+.admission-modal-actions{
+  gap:8px;
+  padding-top:7px;
+}
+
+.admission-primary-action,
+.admission-secondary-action{
+  padding:8px 13px;
+  border-radius:7px;
+}
+
+.admission-readonly-card{
+  padding:9px 10px;
+}
+
+/* Result grid - one compact heading row + one row per result level. */
+.admission-results-table{
+  display:grid;
+  border:1px solid #dbe4f0;
+  border-radius:9px;
+  overflow:hidden;
+  background:#fff;
+}
+
+.admission-results-head,
+.admission-results-row{
+  display:grid;
+  grid-template-columns:105px repeat(4,minmax(120px,1fr));
+  align-items:center;
+}
+
+.admission-results-head{
+  background:#f1f5f9;
+  border-bottom:1px solid #dbe4f0;
+  color:#334155;
+  font-size:11px;
+  font-weight:800;
+}
+
+.admission-results-head > div{
+  padding:6px 8px;
+}
+
+.admission-result-level-head{
+  color:transparent;
+  user-select:none;
+}
+
+.admission-results-row + .admission-results-row{
+  border-top:1px solid #e2e8f0;
+}
+
+.admission-result-level{
+  padding:7px 8px;
+  background:#f8fafc;
+  align-self:stretch;
+  display:flex;
+  align-items:center;
+  font-size:13px;
+}
+
+.admission-result-cell{
+  padding:5px;
+}
+
+.admission-result-cell input{
+  width:100%;
+  min-height:34px;
+  box-sizing:border-box;
+  border:1px solid #cbd5e1;
+  border-radius:6px;
+  background:#fff;
+  padding:6px 8px;
+}
+
+.admission-result-cell input:disabled{
+  background:#f8fafc;
+  color:#64748b;
+}
+
+.admission-result-na{
+  min-height:34px;
+  display:flex;
+  align-items:center;
+  padding:0 8px;
+  color:#94a3b8;
+}
+
+.admission-result-mobile-label{
+  display:none;
+}
+
+/* Retire old card presentation when shared component is updated. */
+.admission-results-grid,
+.admission-result-card,
+.admission-result-title,
+.admission-result-fields{
+  all:unset;
+}
+
+@media(max-width:900px){
+  .admission-modal-form{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .admission-results-head,
+  .admission-results-row{
+    grid-template-columns:92px repeat(4,minmax(110px,1fr));
+  }
+
+  .admission-results-table{
+    overflow-x:auto;
+  }
+}
+
+@media(max-width:700px){
+  .admission-modal-form{
+    grid-template-columns:1fr;
+  }
+
+  .admission-results-head{
+    display:none;
+  }
+
+  .admission-results-row{
+    grid-template-columns:1fr 1fr;
+    padding:8px;
+    gap:8px;
+  }
+
+  .admission-result-level{
+    grid-column:1/-1;
+    padding:0 0 4px;
+    background:transparent;
+  }
+
+  .admission-result-cell{
+    padding:0;
+  }
+
+  .admission-result-mobile-label{
+    display:block;
+    margin-bottom:4px;
+    color:#475569;
+    font-size:11px;
+    font-weight:800;
+  }
+}
+
+/* v3.26 admission form sections */
+.admission-section-title{
+  margin:2px 0 0;
+  padding:7px 0 5px;
+  border-bottom:1px solid #e2e8f0;
+  color:#1e3a8a;
+  font-size:12px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.admission-readonly-input{
+  background:#f1f5f9!important;
+  color:#475569;
+  cursor:not-allowed;
+}
+
+/* v3.91 Admissions shell alignment
+   Match Students page: respect AppLayout page padding instead of cancelling it
+   with the legacy negative admissions workspace margins. */
+.app-page-area > .admissions-workspace{
+  width:min(1060px,100%)!important;
+  max-width:1060px!important;
+  margin:0!important;
+  min-height:100%;
+}
+
+.app-page-area > .admissions-workspace .admissions-module-title{
+  margin:0 0 5px!important;
+}
+
+.app-page-area > .admissions-workspace .admissions-module-navigation{
+  margin:0 0 12px!important;
+  padding:5px!important;
+  min-height:auto!important;
+  background:#f8fafc!important;
+  border:1px solid #dbe4f0!important;
+  border-radius:10px!important;
+}
+
+.app-page-area > .admissions-workspace .admissions-page-content{
+  padding:0!important;
+}
+
+.app-page-area > .admissions-workspace .admissions-page-content > h2:first-child{
+  margin-top:0;
+}
+
+@media(max-width:800px){
+  .app-page-area > .admissions-workspace{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+}
+
+
+/* ===== Inquiry upper form layout: Session / Name / Father, Contact / Class / School, Address / Reference / Detail ===== */
+.inquiry-form-grid-placeholder{min-height:1px}
+@media(min-width:701px){
+  .admission-modal-large .admission-modal-form{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+/* ===== Admissions Reports ===== */
+.admission-report-screen-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}.admission-report-screen-head h2{margin:0}.admission-report-screen-head p{margin:5px 0 0}.admission-report-actions{display:flex;gap:8px}.admission-report-actions button{background:#2457e6;color:#fff;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}.admission-report-actions .admission-secondary-action{background:#fff;color:#334155;border:1px solid #cbd5e1}.admission-report-filters{display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));gap:10px;padding:12px;border:1px solid #dbe3ee;border-radius:12px;background:#f8fafc;margin-bottom:14px}.admission-report-filters label{display:grid;gap:5px;font-size:12px;font-weight:700;color:#475569}.admission-report-filters select,.admission-report-filters input{width:100%;min-height:38px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;padding:7px 9px;color:#172033}.admission-report-sheet{background:#fff;border:1px solid #dbe3ee;border-radius:12px;padding:16px}.admission-report-header{display:grid;grid-template-columns:86px 1fr 86px;align-items:center;border-bottom:2px solid #173f73;padding:0 0 10px;margin:0 0 10px;min-height:82px}.admission-report-logo{width:76px;height:76px;display:flex;align-items:center;justify-content:center}.admission-report-logo img{max-width:100%;max-height:100%;object-fit:contain}.admission-report-logo span{font-size:10px;color:#94a3b8}.admission-report-identity{text-align:center}.admission-report-identity h1{margin:0;color:#123b6d;font-size:23px}.admission-report-identity .slogan{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#64748b;margin:2px 0 6px}.admission-report-identity h2{margin:0;font-size:16px}.admission-report-identity p{margin:3px 0 0;font-size:10px;color:#64748b}.admission-report-contact{text-align:center;font-size:10px;color:#64748b;margin:-2px 0 10px}.admission-report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 12px}.admission-report-kpis div{border:1px solid #dbe3ee;border-radius:8px;padding:8px;text-align:center}.admission-report-kpis span{display:block;font-size:11px;color:#64748b}.admission-report-kpis strong{display:block;font-size:20px;color:#173f73;margin-top:2px}.admission-report-table-wrap{overflow:auto}.admission-report-table-wrap table{width:100%;border-collapse:collapse;font-size:12px}.admission-report-table-wrap th,.admission-report-table-wrap td{border:1px solid #e1e6ee;padding:7px;text-align:left;vertical-align:top}.admission-report-table-wrap th{background:#eef3f9;color:#173f73;white-space:nowrap}.admission-report-table-wrap small{color:#64748b}.admission-report-table-wrap .empty{text-align:center;padding:22px;color:#64748b}@media(max-width:900px){.admission-report-filters{grid-template-columns:repeat(2,1fr)}.admission-report-screen-head{flex-direction:column}.admission-report-kpis{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.admission-report-filters{grid-template-columns:1fr}}
