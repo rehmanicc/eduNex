@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import api from '../../api/client';
 import './employees.css';
 import Pagination, { usePagination } from '../../components/Pagination';
+import { useAuth } from '../../contexts/AuthContext';
 
 const emptyForm = {
   employeeCode: '',
@@ -32,7 +33,11 @@ const errorText = e =>
   'Request failed';
 
 export default function EmployeesPage() {
+  const { college } = useAuth();
   const [employees, setEmployees] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [reportFields, setReportFields] = useState(['employeeCode', 'name', 'cnic', 'designation', 'qualification', 'mobileNo']);
   const employeePager = usePagination(employees);
   const [options, setOptions] = useState({
     categories: [],
@@ -193,6 +198,7 @@ export default function EmployeesPage() {
 
     setPhotoFile(null);
     setPhotoPreview(emp.photoUrl || '');
+    setShowForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -278,6 +284,7 @@ export default function EmployeesPage() {
       }
 
       resetForm();
+      setShowForm(false);
       await loadEmployees();
     } catch (e2) {
       setError(errorText(e2));
@@ -311,6 +318,35 @@ export default function EmployeesPage() {
     }
   }
 
+
+  const reportFieldOptions = [
+    ['employeeCode', 'Employee ID'], ['name', 'Name'], ['fatherName', 'Father Name'],
+    ['cnic', 'CNIC'], ['designation', 'Designation'], ['department', 'Department / Subject'],
+    ['qualification', 'Qualification'], ['mobileNo', 'Phone'], ['email', 'Email'],
+    ['dateOfJoining', 'Joining Date']
+  ];
+
+  function employeeReportValue(emp, key) {
+    if (key === 'employeeCode') return emp.employeeCode || emp.employeeNo || '';
+    if (key === 'designation') return emp.designationId?.name || emp.designation || '';
+    if (key === 'department') return emp.subjectId?.name || emp.subjectId?.title || emp.subjectId?.code || '';
+    if (key === 'mobileNo') return emp.mobileNo || emp.phone || '';
+    if (key === 'dateOfJoining') return dateInput(emp.dateOfJoining || emp.joiningDate);
+    return emp[key] || '';
+  }
+
+  function printEmployeeReport() {
+    if (!reportFields.length) { setError('Select at least one field for the report.'); return; }
+    const selected = reportFieldOptions.filter(([key]) => reportFields.includes(key));
+    const esc = value => String(value ?? '').replace(/[&<>\"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;', "'":'&#39;' }[ch]));
+    const logo = college?.logoUrl || '';
+    const rows = employees.map((emp, index) => `<tr><td>${index + 1}</td>${selected.map(([key]) => `<td>${esc(employeeReportValue(emp, key))}</td>`).join('')}</tr>`).join('');
+    const win = window.open('', '_blank');
+    if (!win) { setError('Pop-up blocked. Please allow pop-ups to print the report.'); return; }
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Employee / Teacher List</title><style>@page{size:A4 landscape;margin:10mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;margin:0}header{text-align:center;border-bottom:2px solid #222;padding-bottom:10px;margin-bottom:14px}header img{width:58px;height:58px;object-fit:contain;float:left}h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:0}p{font-size:10px;margin:4px 0;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #777;padding:6px;text-align:left}th{background:#f1f5f9}.meta{display:flex;justify-content:space-between;font-size:9px;margin:8px 0}footer{margin-top:12px;text-align:right;font-size:9px;color:#555}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header>${logo ? `<img src="${esc(logo)}" alt="Logo">` : ''}<h1>${esc(college?.displayName || college?.name || 'Institution')}</h1><h2>Employee / Teacher List</h2><p>${esc(college?.address || '')}</p></header><div class="meta"><span>Total Employees: ${employees.length}</span><span>Printed: ${new Date().toLocaleDateString()}</span></div><table><thead><tr><th>#</th>${selected.map(([,label]) => `<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${rows || `<tr><td colspan="${selected.length + 1}">No employees found.</td></tr>`}</tbody></table><footer>Powered by TrackiaTech</footer></body></html>`);
+    win.document.close(); win.focus(); setTimeout(() => win.print(), 250);
+  }
+
   return (
     <div className="employees-page">
       <div className="employees-title-row">
@@ -320,13 +356,15 @@ export default function EmployeesPage() {
             Every employee receives a system login automatically. Login roles and employment status are managed here.
           </p>
         </div>
-
-
+        <div className="employees-page-actions">
+          <button type="button" className="btn-light" onClick={() => setShowReport(true)}>Print Teacher List</button>
+          <button type="button" onClick={() => { resetForm(); setShowForm(true); }}>Add Employee</button>
+        </div>
       </div>
 
       {error ? <div className="employees-error">{error}</div> : null}
 
-      <section className="employee-card">
+      {showForm ? <section className="employee-card">
             <div className="employee-card-title">
               <div>
                 <h2>{editingId ? 'Edit Employee' : 'Add Employee'}</h2>
@@ -590,13 +628,13 @@ export default function EmployeesPage() {
                 </button>
 
                 {editingId ? (
-                  <button type="button" className="btn-light" onClick={resetForm}>
+                  <button type="button" className="btn-light" onClick={() => { resetForm(); setShowForm(false); }}>
                     Cancel
                   </button>
                 ) : null}
               </div>
             </form>
-          </section>
+          </section> : null}
 
           <section className="employee-card">
             <div className="employee-card-title">
@@ -614,10 +652,8 @@ export default function EmployeesPage() {
                     <th>Father Name</th>
                     <th>CNIC</th>
                     <th>Mobile</th>
-                    <th>Category</th>
                     <th>Subject</th>
                     <th>Designation</th>
-                    <th>Posting</th>
                     <th>System Access</th>
                     <th>Actions</th>
                   </tr>
@@ -626,7 +662,7 @@ export default function EmployeesPage() {
                 <tbody>
                   {!employees.length ? (
                     <tr>
-                      <td colSpan="10" className="empty-row">
+                      <td colSpan="8" className="empty-row">
                         No employees added yet.
                       </td>
                     </tr>
@@ -647,7 +683,6 @@ export default function EmployeesPage() {
                               <strong>
                                 {emp.employeeCode || emp.employeeNo} — {emp.name}
                               </strong>
-                              <small>{emp.qualification || ''}</small>
                             </div>
                           </div>
                         </td>
@@ -655,11 +690,6 @@ export default function EmployeesPage() {
                         <td>{emp.fatherName || '—'}</td>
                         <td>{emp.cnic || '—'}</td>
                         <td>{emp.mobileNo || emp.phone || '—'}</td>
-                        <td>
-                          {emp.category === 'academic_staff'
-                            ? 'Academic'
-                            : 'Non-Academic'}
-                        </td>
                         <td>
                           {emp.category === 'academic_staff'
                             ? (
@@ -671,14 +701,6 @@ export default function EmployeesPage() {
                             : '—'}
                         </td>
                         <td>{emp.designationId?.name || emp.designation || '—'}</td>
-                        <td>
-                          <strong>{emp.branchId?.name || '—'}</strong>
-                          <small>
-                            {emp.wingType
-                              ? wingLabelMap.get(emp.wingType) || emp.wingType
-                              : 'Branch-wide'}
-                          </small>
-                        </td>
                         <td>
                           {emp.linkedUser ? (
                             <>
@@ -712,6 +734,14 @@ export default function EmployeesPage() {
               <Pagination {...employeePager} />
             </div>
           </section>
+
+      {showReport ? <div className="employee-report-backdrop" onMouseDown={() => setShowReport(false)}>
+        <div className="employee-report-modal" onMouseDown={e => e.stopPropagation()}>
+          <div className="employee-card-title"><div><h2>Teacher List Report</h2><small>Select the fields to include in the printed list.</small></div><button type="button" className="btn-light" onClick={() => setShowReport(false)}>Close</button></div>
+          <div className="employee-report-fields">{reportFieldOptions.map(([key,label]) => <label key={key}><input type="checkbox" checked={reportFields.includes(key)} onChange={e => setReportFields(prev => e.target.checked ? [...new Set([...prev,key])] : prev.filter(x => x !== key))}/><span>{label}</span></label>)}</div>
+          <div className="employee-report-actions"><button type="button" className="btn-light" onClick={() => setReportFields(reportFieldOptions.map(([key]) => key))}>Select All</button><button type="button" onClick={printEmployeeReport}>Print Report</button></div>
+        </div>
+      </div> : null}
     </div>
   );
 }

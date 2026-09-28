@@ -17,6 +17,7 @@ const EventRegistration = require('../../models/EventRegistration');
 const Program = require('../../models/Program');
 const Employee = require('../../models/Employee');
 const TeacherAssignment = require('../../models/TeacherAssignment');
+const Assignment = require('../../models/Assignment');
 const Section = require('../../models/Section');
 const AttendanceSession = require('../../models/AttendanceSession');
 const ExamSchedule = require('../../models/ExamSchedule');
@@ -971,4 +972,88 @@ exports.unregisterPushToken=async(req,res)=>{
   const User=require('../../models/User');
   if(token)await User.updateOne({_id:req.user._id},{$pull:{pushTokens:{token}}});
   res.json({message:'Push notification device removed'});
+};
+
+
+function pakistanDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone:'Asia/Karachi', year:'numeric', month:'2-digit', day:'2-digit'
+  }).formatToParts(date);
+  const map = Object.fromEntries(parts.map(p => [p.type,p.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function validDateKey(value) {
+  const v=String(value||'').trim();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d=new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0,10)===v;
+}
+
+exports.teacherAssignments = async (req,res) => {
+  const teacher=await requireTeacher(req);
+  const rows=await Assignment.find(req.tenantFilter({teacherId:teacher._id,isActive:true}))
+    .populate('programId','name code')
+    .populate('sectionId','name periodNumber genderType')
+    .populate('courseId','name code')
+    .populate('academicSessionId','name isCurrent')
+    .sort({dueDateKey:-1,createdAt:-1})
+    .limit(250)
+    .lean();
+  const today=pakistanDateKey();
+  res.json({today,assignments:rows.map(a=>({
+    id:a._id,title:a.title,instructions:a.instructions,assignedAt:a.assignedAt,
+    dueDate:a.dueDateKey,isExpired:a.dueDateKey<today,
+    program:a.programId||null,section:a.sectionId||null,course:a.courseId||null,
+    academicSession:a.academicSessionId||null
+  }))});
+};
+
+exports.teacherCreateAssignment = async (req,res) => {
+  const teacher=await requireTeacher(req);
+  const teacherAssignmentId=String(req.body?.teacherAssignmentId||'').trim();
+  const title=String(req.body?.title||'').trim();
+  const instructions=String(req.body?.instructions||'').trim();
+  const dueDate=String(req.body?.dueDate||'').trim();
+  if(!teacherAssignmentId)return res.status(400).json({error:'Class and subject are required'});
+  if(!title)return res.status(400).json({error:'Assignment title is required'});
+  if(!instructions)return res.status(400).json({error:'Assignment details are required'});
+  if(!validDateKey(dueDate))return res.status(400).json({error:'A valid due date is required'});
+  if(dueDate<pakistanDateKey())return res.status(400).json({error:'Due date cannot be in the past'});
+
+  // The selected class/subject must be one of this teacher's active assignments.
+  const allowed=await TeacherAssignment.findOne({
+    ...teacherAssignmentFilter(req,teacher._id),_id:teacherAssignmentId
+  }).lean();
+  if(!allowed)return res.status(403).json({error:'You can assign work only to your assigned classes and subjects'});
+
+  const doc=await Assignment.create({
+    collegeId:req.collegeId||req.user.collegeId,
+    teacherId:teacher._id,
+    teacherAssignmentId:allowed._id,
+    academicSessionId:allowed.academicSessionId,
+    programId:allowed.programId,
+    sectionId:allowed.sectionId,
+    courseId:allowed.courseId,
+    title,instructions,dueDateKey:dueDate,assignedAt:new Date()
+  });
+  res.status(201).json({assignment:{id:doc._id,title:doc.title,instructions:doc.instructions,assignedAt:doc.assignedAt,dueDate:doc.dueDateKey}});
+};
+
+exports.studentAssignments = async (req,res) => {
+  const student=await requireStudent(req);
+  if(!student.sectionId)return res.json({today:pakistanDateKey(),assignments:[]});
+  const today=pakistanDateKey();
+  const filter={sectionId:student.sectionId,isActive:true,dueDateKey:{$gte:today}};
+  if(student.academicSessionId)filter.academicSessionId=student.academicSessionId;
+  if(student.programId)filter.programId=student.programId;
+  const rows=await Assignment.find(req.tenantFilter(filter))
+    .populate('teacherId','name employeeNo employeeCode')
+    .populate('courseId','name code')
+    .sort({dueDateKey:1,assignedAt:-1})
+    .lean();
+  res.json({today,assignments:rows.map(a=>({
+    id:a._id,title:a.title,instructions:a.instructions,assignedAt:a.assignedAt,
+    dueDate:a.dueDateKey,course:a.courseId||null,teacher:a.teacherId||null
+  }))});
 };

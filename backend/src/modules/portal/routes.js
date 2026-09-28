@@ -17,6 +17,7 @@ router.get('/student/library/catalog',asyncHandler(c.studentLibraryCatalog));
 router.get('/student/notices',asyncHandler(c.studentNotices));
 router.post('/student/notices/:id/read',asyncHandler(c.markStudentNoticeRead));
 router.get('/student/events',asyncHandler(c.studentEvents));
+router.get('/student/assignments',asyncHandler(c.studentAssignments));
 router.post('/student/events/:id/register',asyncHandler(c.registerStudentEvent));
 
 router.get('/teacher/profile',asyncHandler(c.teacherProfile));
@@ -24,6 +25,8 @@ router.get('/teacher/dashboard',asyncHandler(c.teacherDashboard));
 router.get('/teacher/timetable',asyncHandler(c.teacherTimetable));
 router.get('/teacher/classes',asyncHandler(c.teacherClasses));
 router.get('/teacher/classes/:assignmentId/students',asyncHandler(c.teacherClassStudents));
+router.get('/teacher/assignments',asyncHandler(c.teacherAssignments));
+router.post('/teacher/assignments',asyncHandler(c.teacherCreateAssignment));
 router.get('/teacher/attendance/contexts',asyncHandler(c.teacherAttendanceContexts));
 router.get('/teacher/attendance/roster',asyncHandler(c.teacherAttendanceRoster));
 router.post('/teacher/attendance/submit',asyncHandler(c.teacherSubmitAttendance));

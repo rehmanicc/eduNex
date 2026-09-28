@@ -291,7 +291,7 @@
 .fee-default-installment-selectors{display:grid;grid-template-columns:1fr 1fr 180px;gap:12px;margin-bottom:14px}
 .fee-default-installment-selectors label{display:flex;flex-direction:column;gap:5px}
 .fee-default-installment-selectors span{font-size:12px;font-weight:700;color:#24344f}
-.fee-default-installment-actions{display:flex;justify-content:flex-end;margin-top:12px}
+.fee-default-installment-actions{display:flex;justify-content:flex-end;gap:14px;margin-top:12px}
 @media(max-width:800px){.fee-default-installment-selectors{grid-template-columns:1fr}}
 
 /* Fee Structure sub-options */

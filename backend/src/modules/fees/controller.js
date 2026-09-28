@@ -1374,6 +1374,29 @@ exports.createBulkFeePostings = async (req, res) => {
 };
 
 
+async function synchronizeLaterUnpaidVoucherArrears(collegeId, planId) {
+  const postings = await FeePosting.find({
+    collegeId, studentFeePlanId: planId, status: { $ne: 'cancelled' }
+  }).sort({ postingDate: 1, createdAt: 1 });
+  const byId = new Map(postings.map(row => [String(row._id), row]));
+  for (const voucher of postings) {
+    if (!['unpaid', 'partial'].includes(String(voucher.status || '')) || !(voucher.arrearsSnapshot || []).length) continue;
+    let changed = false;
+    const next = [];
+    for (const snap of voucher.arrearsSnapshot || []) {
+      const source = byId.get(String(snap.postingId));
+      const line = source?.lines?.id ? source.lines.id(snap.lineId) : source?.lines?.find(x => String(x._id) === String(snap.lineId));
+      const outstanding = line ? postingLineOutstanding(line) : 0;
+      if (outstanding > 0.01) {
+        const amount = Number(outstanding.toFixed(2));
+        if (Math.abs(amount - Number(snap.outstandingAmount || 0)) > 0.01) changed = true;
+        next.push({ postingId: snap.postingId, lineId: snap.lineId, feeHeadCode: snap.feeHeadCode, description: snap.description, outstandingAmount: amount });
+      } else changed = true;
+    }
+    if (changed) { voucher.arrearsSnapshot = next; await voucher.save(); }
+  }
+}
+
 exports.postAllocatedPayment = async (req, res) => {
   const collegeId = collegeIdOf(req);
   const plan = await StudentFeePlan.findOne({ _id: req.params.planId, collegeId });
@@ -1433,6 +1456,7 @@ exports.postAllocatedPayment = async (req, res) => {
   });
 
   await refreshPostingPlan(plan);
+  await synchronizeLaterUnpaidVoucherArrears(collegeId, plan._id);
   await promoteAdmissionAfterPostedPayment(req, admission);
   await financeService.postSourceTransaction({collegeId,branchId:admission.branchId,type:'income',amount:payment.amount,transactionDate:payment.paymentDate,paymentMethod:financeMethod(payment.paymentMethod),accountId:req.body.financeAccountId,headCode:'STUDENT_FEES',sourceModule:'fees',sourceDocumentType:'FeePayment',sourceDocumentId:payment._id,sourceReference:payment.receiptNo,description:`Student fee payment ${payment.receiptNo}${admission.rollNo?` - ${admission.rollNo}`:''}`,userId:req.user._id});
   await audit(req, 'POST_ALLOCATED_FEE_PAYMENT', 'FeePayment', payment._id, {

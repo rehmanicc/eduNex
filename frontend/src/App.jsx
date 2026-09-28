@@ -32,6 +32,7 @@ const Roles=lazy(()=>import('./modules/roles/RolesPage'));
 const Events=lazy(()=>import('./modules/events/EventsPage'));
 const Platform=lazy(()=>import('./modules/platform/PlatformPage'));
 const Feedback=lazy(()=>import('./modules/feedback/FeedbackPage'));
+const Assignments=lazy(()=>import('./modules/assignments/AssignmentsPage'));
 
 function RouteLoading(){
   return <p style={{padding:'24px'}}>Loading...</p>;
@@ -73,6 +74,7 @@ export default function App(){
         <Route path="/notices" element={<Notices/>}/>
         <Route path="/events" element={<Events/>}/>
         <Route path="/feedback" element={<Feedback/>}/>
+        <Route path="/assignments" element={<Assignments/>}/>
         <Route path="/users" element={<Users/>}/>
         <Route path="/roles" element={<Roles/>}/>
       </>}
