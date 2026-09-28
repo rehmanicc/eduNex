@@ -34,7 +34,17 @@ export default function TimetableWholeView({options}){
    <select value={filter.teacherId} onChange={e=>setFilter({...filter,teacherId:e.target.value})}><option value="">All Teachers</option>{(options.teachers||[]).map(t=><option key={t._id} value={t._id}>{t.employeeNo} - {t.name}</option>)}</select>
   </div>
   <div className="tt-whole-table-wrap"><table className="tt-table tt-whole-table"><thead><tr><th>Class / Section</th>{DAYS.slice(1,7).concat(DAYS[0]).map(d=><th key={d}>{d}</th>)}</tr></thead><tbody>
-   {sectionGroups.map(g=><tr key={oid(g.section)}><th>{g.section?.programId?.name||'Program'} / {g.section?.name}</th>{[1,2,3,4,5,6,0].map(day=><td key={day}>{g.rows.filter(r=>Number(r.dayOfWeek)===day).sort((a,b)=>a.startMinutes-b.startMinutes).map(r=><div className={`tt-whole-lesson ${r.isLocked?'locked':''}`} key={r._id}><strong>{hm(r.startMinutes)} {r.courseId?.code||r.courseId?.name}</strong><span>{r.teacherId?.name}</span><small>{r.generationStatus||'draft'} • {r.source||'manual'}</small><button type="button" className="tt-lock-button" onClick={()=>toggleLock(r)}>{r.isLocked?'🔒 Locked':'🔓 Lock'}</button></div>)}</td>)}</tr>)}
+   {sectionGroups.map(g=><tr key={oid(g.section)}><th>{g.section?.programId?.name||'Program'} / {g.section?.name}</th>{[1,2,3,4,5,6,0].map(day=><td key={day}>{g.rows.filter(r=>Number(r.dayOfWeek)===day).sort((a,b)=>a.startMinutes-b.startMinutes).map(r=><div className={`tt-whole-lesson ${r.isLocked?'locked':''}`} key={r._id}>
+    <strong>{hm(r.startMinutes)} {r.courseId?.code||r.courseId?.name}</strong>
+    <span>{r.teacherId?.name}</span>
+    <button
+     type="button"
+     className="tt-lock-icon"
+     onClick={()=>toggleLock(r)}
+     title={r.isLocked?'Unlock lesson':'Lock lesson'}
+     aria-label={r.isLocked?'Unlock lesson':'Lock lesson'}
+    >{r.isLocked?'🔒':'🔓'}</button>
+   </div>)}</td>)}</tr>)}
    {!sectionGroups.length&&<tr><td colSpan="8">No timetable lessons found for this selection.</td></tr>}
   </tbody></table></div>
  </section>;

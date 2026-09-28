@@ -439,6 +439,20 @@ exports.deleteConstraint=async(req,res)=>{
  res.json({ok:true});
 };
 
+// When a section has an active generated Draft, treat it as the replacement
+// for unlocked generated Published rows in that section. Locked/manual lessons
+// remain part of the effective timetable until the draft is published.
+function effectiveTimetableRows(rows,sectionIds=null){
+ const allowed=sectionIds?new Set(sectionIds.map(id)):null;
+ const draftSections=new Set(rows.filter(r=>r.isActive!==false&&r.source==='generated'&&r.generationStatus==='draft'&&(!allowed||allowed.has(id(r.sectionId)))).map(r=>id(r.sectionId)));
+ return rows.filter(r=>{
+   const sid=id(r.sectionId);
+   if(!draftSections.has(sid))return true;
+   if(r.source==='generated'&&r.generationStatus==='published'&&!r.isLocked)return false;
+   return true;
+ });
+}
+
 exports.generatePreview=async(req,res)=>{
  const collegeId=cid(req),b=req.body||{};
  const academicSessionId=b.academicSessionId;
@@ -469,7 +483,7 @@ exports.generatePreview=async(req,res)=>{
  const allExisting=await Timetable.find({collegeId,isActive:true}).lean();
  const targetExisting=allExisting.filter(r=>sectionIdSet.has(id(r.sectionId))&&id(r.academicSessionId)===id(academicSessionId));
  const outsideScope=allExisting.filter(r=>!sectionIdSet.has(id(r.sectionId))||id(r.academicSessionId)!==id(academicSessionId));
- const protectedInside=targetExisting.filter(r=>r.generationStatus==='published'||r.isLocked||r.source!=='generated');
+ const protectedInside=targetExisting.filter(r=>r.isLocked||r.source!=='generated'||(r.generationStatus==='published'&&mode!=='regenerate_unlocked'));
 
  let preservedGenerated=[];
  if(mode==='missing_only'){
@@ -658,7 +672,12 @@ exports.publishGenerated=async(req,res)=>{
  const scopeSections=await generationSections(collegeId,academicSessionId,scopeType,scopeId);
  const scopeSectionIds=scopeSections.map(s=>s._id);
 
- const activeRows=await Timetable.find({collegeId,academicSessionId,isActive:true}).lean();
+ const publishingQuery={collegeId,academicSessionId,isActive:true,generationStatus:'draft',sectionId:{$in:scopeSectionIds}};
+ const publishingRows=await Timetable.find(publishingQuery).select('_id sectionId teacherId').lean();
+ if(!publishingRows.length)return res.json({ok:true,published:0,notifiedUsers:0,pushSent:0,publishedAt:null,message:'No generated Draft lessons are waiting to be published.'});
+
+ const rawActiveRows=await Timetable.find({collegeId,academicSessionId,isActive:true}).lean();
+ const activeRows=effectiveTimetableRows(rawActiveRows,scopeSectionIds);
  const conflicts=[];
  for(let i=0;i<activeRows.length;i++)for(let j=i+1;j<activeRows.length;j++){
    const x=activeRows[i],y=activeRows[j];
@@ -685,10 +704,15 @@ exports.publishGenerated=async(req,res)=>{
  const unavailable=targetRows.filter(row=>intervalConstraintBlocked(constraints.filter(c=>id(c.teacherId)===id(row.teacherId)),row.dayOfWeek,row.startMinutes,row.endMinutes));
  if(unavailable.length)return res.status(409).json({error:'Cannot publish because one or more lessons violate teacher unavailable times',lessonIds:unavailable.map(x=>x._id)});
 
- const q={collegeId,academicSessionId,isActive:true,generationStatus:'draft',sectionId:{$in:scopeSectionIds}};
- const publishingRows=await Timetable.find(q).select('_id sectionId teacherId').lean();
+ const replacedSectionIds=[...new Set(publishingRows.map(x=>id(x.sectionId)).filter(Boolean))];
  const publishedAt=new Date();
- const result=await Timetable.updateMany(q,{$set:{generationStatus:'published',publishedAt,publishedBy:req.user._id}});
+ // Retire only the superseded unlocked generated Published rows. Locked and
+ // manual lessons survive the replacement and remain part of the timetable.
+ await Timetable.updateMany({
+   collegeId,academicSessionId,sectionId:{$in:replacedSectionIds},isActive:true,
+   source:'generated',generationStatus:'published',isLocked:false
+ },{$set:{isActive:false}});
+ const result=await Timetable.updateMany(publishingQuery,{$set:{generationStatus:'published',publishedAt,publishedBy:req.user._id}});
  const published=result.modifiedCount||0;
 
  // Notify only when draft lessons actually changed to published. This makes
@@ -734,7 +758,7 @@ exports.wholeGrid=async(req,res)=>{
    .populate('teacherId','name employeeNo')
    .populate('divisionId','name code')
    .sort({dayOfWeek:1,startMinutes:1}).lean();
- res.json(rows);
+ res.json(effectiveTimetableRows(rows));
 };
 
 
@@ -748,16 +772,18 @@ exports.verifyDetailed=async(req,res)=>{
  const sections=await generationSections(collegeId,academicSessionId,scopeType,scopeId);
  const sectionIds=sections.map(s=>s._id);
  const sectionIdSet=new Set(sectionIds.map(id));
- const rows=await Timetable.find({collegeId,academicSessionId,sectionId:{$in:sectionIds},isActive:true})
+ const rawRows=await Timetable.find({collegeId,academicSessionId,sectionId:{$in:sectionIds},isActive:true})
    .populate('sectionId','name programId')
    .populate('courseId','name code')
    .populate('teacherId','name employeeNo')
    .lean();
- const allSessionRows=await Timetable.find({collegeId,academicSessionId,isActive:true})
+ const rawAllSessionRows=await Timetable.find({collegeId,academicSessionId,isActive:true})
    .populate('sectionId','name programId')
    .populate('courseId','name code')
    .populate('teacherId','name employeeNo')
    .lean();
+ const rows=effectiveTimetableRows(rawRows,sectionIds);
+ const allSessionRows=effectiveTimetableRows(rawAllSessionRows,sectionIds);
  const targetIdSet=new Set(rows.map(r=>id(r._id)));
  const assignments=await TeacherAssignment.find({collegeId,academicSessionId,sectionId:{$in:sectionIds},isActive:true})
    .populate('sectionId','name')
