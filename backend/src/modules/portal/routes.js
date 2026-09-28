@@ -7,6 +7,9 @@ const asyncHandler = fn => (req,res,next) => Promise.resolve(fn(req,res,next)).c
   next(err);
 });
 router.get('/me',asyncHandler(c.me));
+router.get('/notifications',asyncHandler(c.notifications));
+router.post('/notifications/read-all',asyncHandler(c.markAllNotificationsRead));
+router.post('/notifications/:id/read',asyncHandler(c.markNotificationRead));
 router.get('/student/profile',asyncHandler(c.studentProfile));
 router.get('/student/attendance',asyncHandler(c.studentAttendance));
 router.get('/student/timetable',asyncHandler(c.studentTimetable));

@@ -52,6 +52,22 @@ exports.me = async (req,res) => {
   res.json({user:{id:req.user._id,name:req.user.name,email:req.user.emailIsSynthetic?'':req.user.email,cnic:req.user.cnic||'',loginRollNo:req.user.loginRollNo||'',collegeId:req.user.collegeId,roles:(req.user.roleIds||[]).map(r=>({id:r._id,name:r.name,code:r.code})),linkedStudentId:studentId,linkedEmployeeId:employeeId,mustChangePassword:Boolean(req.user.mustChangePassword)}});
 };
 
+
+exports.notifications = async (req,res) => {
+  const rows=await Notification.find(req.tenantFilter({userId:req.user._id})).sort({createdAt:-1}).limit(100).lean();
+  res.json({notifications:rows.map(n=>({id:n._id,type:n.type,title:n.title,message:n.message,entityType:n.entityType||'',entityId:n.entityId||null,isRead:Boolean(n.isRead),readAt:n.readAt||null,createdAt:n.createdAt})),unreadCount:rows.filter(n=>!n.isRead).length});
+};
+exports.markNotificationRead = async (req,res) => {
+  const row=await Notification.findOneAndUpdate(req.tenantFilter({_id:req.params.id,userId:req.user._id}),{$set:{isRead:true,readAt:new Date()}},{new:true}).lean();
+  if(!row)return res.status(404).json({error:'Notification not found'});
+  res.json({ok:true,isRead:true,readAt:row.readAt});
+};
+exports.markAllNotificationsRead = async (req,res) => {
+  const now=new Date();
+  const result=await Notification.updateMany(req.tenantFilter({userId:req.user._id,isRead:false}),{$set:{isRead:true,readAt:now}});
+  res.json({ok:true,updated:result.modifiedCount||0});
+};
+
 exports.studentProfile = async (req,res) => {
   const access=await requireStudent(req); const studentId=String(access._id);
   const student=await Student.findOne(req.tenantFilter({_id:studentId})).populate('programId','name code academicSystem academicType').populate('sectionId','name periodNumber genderType').populate('academicSessionId','name startDate endDate isCurrent').lean();

@@ -14,6 +14,10 @@ const ScheduleProfile=require('../../models/TimetableScheduleProfile');
 const TimetableConstraint=require('../../models/TimetableConstraint');
 const ClassTimetableConstraint=require('../../models/ClassTimetableConstraint');
 const TimetableDivision=require('../../models/TimetableDivision');
+const Student=require('../../models/Student');
+const User=require('../../models/User');
+const Notification=require('../../models/Notification');
+const pushNotificationService=require('../../services/pushNotificationService');
 const cid=req=>req.collegeId||req.user?.collegeId;
 const id=v=>String(v?._id||v||'');
 function minutes(v){const [h,m]=String(v||'00:00').split(':').map(Number);return h*60+m;}
@@ -682,8 +686,36 @@ exports.publishGenerated=async(req,res)=>{
  if(unavailable.length)return res.status(409).json({error:'Cannot publish because one or more lessons violate teacher unavailable times',lessonIds:unavailable.map(x=>x._id)});
 
  const q={collegeId,academicSessionId,isActive:true,generationStatus:'draft',sectionId:{$in:scopeSectionIds}};
- const result=await Timetable.updateMany(q,{$set:{generationStatus:'published',publishedAt:new Date(),publishedBy:req.user._id}});
- res.json({ok:true,published:result.modifiedCount||0});
+ const publishingRows=await Timetable.find(q).select('_id sectionId teacherId').lean();
+ const publishedAt=new Date();
+ const result=await Timetable.updateMany(q,{$set:{generationStatus:'published',publishedAt,publishedBy:req.user._id}});
+ const published=result.modifiedCount||0;
+
+ // Notify only when draft lessons actually changed to published. This makes
+ // repeated clicks on Publish Verified Draft idempotent for notifications.
+ let notifiedUsers=0,pushSent=0;
+ if(published>0&&publishingRows.length){
+   const sectionIds=[...new Set(publishingRows.map(x=>id(x.sectionId)).filter(Boolean))];
+   const teacherIds=[...new Set(publishingRows.map(x=>id(x.teacherId)).filter(Boolean))];
+   const students=await Student.find({collegeId,academicSessionId,sectionId:{$in:sectionIds},status:'active'}).select('_id').lean();
+   const studentIds=students.map(x=>x._id);
+   const users=await User.find({collegeId,isActive:true,$or:[
+     ...(studentIds.length?[{linkedStudentId:{$in:studentIds}}]:[]),
+     ...(teacherIds.length?[{linkedEmployeeId:{$in:teacherIds}}]:[])
+   ]}).select('_id linkedStudentId linkedEmployeeId').lean();
+   if(users.length){
+     const docs=users.map(u=>{
+       const teacher=Boolean(u.linkedEmployeeId&&teacherIds.includes(id(u.linkedEmployeeId)));
+       return {collegeId,userId:u._id,type:'timetable_published',title:teacher?'Teaching Timetable Published':'Timetable Published',message:teacher?'Your teaching timetable has been published. Open My Timetable to view your schedule.':'Your class timetable has been published. Open My Timetable to view your schedule.',entityType:'Timetable',entityId:academicSessionId};
+     });
+     await Notification.insertMany(docs,{ordered:false});
+     notifiedUsers=docs.length;
+   }
+   const studentPush=await pushNotificationService.sendToStudentIds(collegeId,studentIds,{title:'Timetable Published',body:'Your class timetable has been published. Open My Timetable to view your schedule.',data:{screen:'timetable',type:'timetable_published'}});
+   const teacherPush=await pushNotificationService.sendToEmployeeIds(collegeId,teacherIds,{title:'Teaching Timetable Published',body:'Your teaching timetable has been published. Open My Timetable to view your schedule.',data:{screen:'teacherTimetable',type:'timetable_published'}});
+   pushSent=Number(studentPush.sent||0)+Number(teacherPush.sent||0);
+ }
+ res.json({ok:true,published,notifiedUsers,pushSent,publishedAt:published?publishedAt:null});
 };
 
 exports.wholeGrid=async(req,res)=>{
