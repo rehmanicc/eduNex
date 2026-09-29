@@ -274,6 +274,7 @@ export default function Timetable(){
    options={o}
    generator={<TimetableGenerator options={o} onChanged={async()=>{await load();await loadGrid();}}/>}
    verification={<TimetableVerification options={o}/>}
+   onClose={()=>setTab('assignments')}
   />}
   {tab==='teachers'&&<TimetableTeachersTab options={o}/>}
   {tab==='classes'&&<TimetableClassesTab options={o} assignments={assignments}/>}

@@ -400,3 +400,20 @@
 .tt-asc-card .tt-asc-subject{width:100%!important;max-width:100%!important;margin:0!important;padding:0 1px!important;box-sizing:border-box!important;text-align:center!important;color:#0f172a!important;font-size:9px!important;font-weight:800!important;line-height:32px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 .tt-asc-card small{position:absolute!important;right:0!important;bottom:0!important;line-height:7px!important;margin:0!important;padding:0!important}
 @media(max-width:1050px){.tt-workspace-filters{align-items:flex-start!important;flex-wrap:wrap!important}.tt-workspace-filters .tt-workspace-actions{margin-left:0}}
+
+/* 2026-09-29 direct workspace, subject colours and isolated report printing */
+.tt-asc-card{background:var(--tt-subject-color,#fff)!important}
+.tt-asc-card .tt-asc-subject{background:transparent!important}
+.tt-asc-card.locked{background:var(--tt-subject-color,#fff)!important;box-shadow:inset 0 0 0 2px #b45309!important}
+.tt-asc-card.locked .tt-asc-subject{background:transparent!important}
+
+/* The print copy is portalled directly under body so application navigation never participates in print layout. */
+.tt-print-portal{display:none}
+@media print{
+ body.tt-printing #root{display:none!important}
+ body.tt-printing .tt-print-portal{display:block!important;position:static!important;width:100%!important;margin:0!important;padding:0!important}
+ body.tt-printing .tt-print-portal .tt-print-root{display:block!important;position:static!important;width:100%!important;margin:0!important;padding:0!important}
+ body.tt-printing .tt-print-portal .tt-print-root,body.tt-printing .tt-print-portal .tt-print-root *{visibility:visible!important}
+ body.tt-printing .tt-print-portal .tt-print-page{height:196mm!important;max-height:196mm!important;overflow:hidden!important}
+ body.tt-printing .tt-print-portal .tt-print-grid tbody td{height:auto!important}
+}
