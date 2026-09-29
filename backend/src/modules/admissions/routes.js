@@ -33,6 +33,7 @@ const upload=multer({
 });
 
 r.get('/reports',permit(P.VIEW_ADMISSIONS),asyncHandler(c.admissionReport));
+r.get('/reference-staff',permit(P.VIEW_ADMISSIONS),asyncHandler(c.referenceStaff));
 r.get('/inquiries',permit(P.VIEW_ADMISSIONS),asyncHandler(c.listInquiries));
 r.post('/inquiries',permit(P.MANAGE_ADMISSIONS),asyncHandler(c.createInquiry));
 r.post('/inquiries/:id/status',permit(P.MANAGE_ADMISSIONS),asyncHandler(c.updateInquiryStatus));

@@ -61,6 +61,8 @@ const schema=new mongoose.Schema({
     index:true
   },
   referenceDetail:{type:String,trim:true},
+  // Stable employee link for Staff references. Kept even when the employee later leaves.
+  referenceStaffId:{type:mongoose.Schema.Types.ObjectId,ref:'Employee',index:true},
 
   status:{
     type:String,
@@ -98,6 +100,11 @@ schema.pre('validate',function(next){
   if(['student','staff','other'].includes(this.referenceType)&&!String(this.referenceDetail||'').trim()){
     return next(new Error('Reference Detail is required for the selected Reference.'));
   }
+
+  if(this.referenceType==='staff'&&!this.referenceStaffId){
+    return next(new Error('A Staff reference must be linked to an employee record.'));
+  }
+  if(this.referenceType!=='staff')this.referenceStaffId=undefined;
 
   if(this.obtainedMarks!==undefined&&this.obtainedMarks!==null&&this.totalMarks){
     this.percentage=Number(

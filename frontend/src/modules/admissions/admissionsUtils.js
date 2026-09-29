@@ -25,6 +25,7 @@ export const blankInquiry = {
   programId: '',
   referenceType: '',
   referenceDetail: '',
+  referenceStaffId: '',
   previousResults: []
 };
 

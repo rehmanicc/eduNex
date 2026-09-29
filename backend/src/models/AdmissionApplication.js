@@ -46,6 +46,7 @@ const schema=new mongoose.Schema({
   // Reference is historical Inquiry information and is never editable here.
   referenceType:{type:String,trim:true},
   referenceDetail:{type:String,trim:true},
+  referenceStaffId:{type:mongoose.Schema.Types.ObjectId,ref:'Employee',index:true},
 
   bFormCnic:{type:String,trim:true},
   fatherCnic:{type:String,trim:true},

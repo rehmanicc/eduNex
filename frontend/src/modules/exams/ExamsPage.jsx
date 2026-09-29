@@ -29,32 +29,32 @@ function resultAssetUrl(value){if(!value)return '';try{const u=new URL(String(va
 function ResultCardSheet({data,refEl}){
   const c=data?.college||{},student=data?.student||{},exam=data?.exam||{},summary=data?.summary||{},attendance=data?.attendance||{};
   const rows=[...(data?.results||[])];while(rows.length<10)rows.push(null);
-  const previous=data?.previousExamResults||[];const examLabel=exam?.examTypeId?.name||exam?.name||'Examination';const sessionName=exam?.academicSessionId?.name||student?.academicSessionId?.name||'—';
-  const contact=[c.address,c.contactNo,c.phone,c.email,c.website].filter(Boolean).join(' • ');
+  const previous=data?.previousExamResults||[];const examLabel=exam?.name||exam?.examTypeId?.name||'Examination';const sessionName=exam?.academicSessionId?.name||student?.academicSessionId?.name||'—';
+  const footerContact=[c.address,c.contactNo||c.phone].filter(Boolean).join(' • ');
   const left=[['Student Name',student.name],['Father Name',student.fatherName],['Admission No.',student.admissionNo],['Roll No.',student.rollNo]];
   const right=[['Class / Section',[student.programId?.name,student.sectionId?.name].filter(Boolean).join(' / ')],['Academic Session',sessionName],['Exam',examLabel],['Date of Birth',student.dateOfBirth?displayDate(student.dateOfBirth):'—']];
   // College Profile has used different logo keys across older eduNex builds; accept all of them.
   const logoValue=c.logoUrl||c.logo||c.logoPath||c.instituteLogo||c.collegeLogo||c.branding?.logoUrl||c.branding?.logo||'';
-  const logoSrc=resultAssetUrl(logoValue);
+  const logoSrc=resultAssetUrl(logoValue)||'/branding/edunex-default-logo.png';
   const photoSrc=resultAssetUrl(student.photoUrl||student.photo||student.profilePhoto||student.imageUrl||'');
   const pct=Number(summary.percentage||0);const failed=String(summary.overallStatus||'').toLowerCase()==='fail'||(data?.results||[]).some(r=>String(r?.resultStatus||'').toLowerCase()==='fail');
   const systemRemarks=failed?'Needs improvement. Focus on the subjects not yet passed and continue regular study.':pct>=80?'Excellent performance. Keep up the outstanding work.':pct>=70?'Very good performance. Keep working consistently.':pct>=60?'Good performance. Continue working to improve further.':pct>=50?'Satisfactory performance. More consistent effort can improve the result.':pct>=40?'Pass performance. Regular practice and focused revision are recommended.':'More focused study and regular practice are required.';
   return <article className={`result-card-sheet ${data?.printMode==='preprinted'?'result-card-preprinted':'result-card-blank'}`} ref={refEl}>
-    <header className="result-card-brand"><div className="result-card-logo">{logoSrc?<img src={logoSrc} alt="Institute logo"/>:null}</div><div className="result-card-brand-copy"><h1>{c.name||'Institute'}</h1>{c.educationalSlogan&&<p className="result-card-slogan">{c.educationalSlogan}</p>}<h2>RESULT CARD</h2><p>{examLabel} • {sessionName}</p></div><div className="result-card-brand-spacer"/></header>
-    {contact&&<div className="result-card-contact">{contact}</div>}
+    <header className="result-card-brand"><div className="result-card-logo"><img src={logoSrc} alt="Institute logo" onError={e=>{if(!e.currentTarget.src.endsWith('/branding/edunex-default-logo.png'))e.currentTarget.src='/branding/edunex-default-logo.png';}}/></div><div className="result-card-brand-copy"><h1>{String(c.name||'Institute').toUpperCase()}</h1>{c.educationalSlogan&&<p className="result-card-slogan">{c.educationalSlogan}</p>}<h2>RESULT CARD</h2><p>{examLabel} • {sessionName}</p></div><div className="result-card-brand-spacer"/></header>
     <section className="result-card-profile"><div>{left.map(([k,v])=><p key={k}><span>{k}</span><strong>{v||'—'}</strong></p>)}</div><div>{right.map(([k,v])=><p key={k}><span>{k}</span><strong>{v||'—'}</strong></p>)}</div><div className="result-card-photo">{photoSrc?<img src={photoSrc} alt="Student"/>:<span>Student<br/>Photo</span>}</div></section>
     <table className="result-card-marks"><thead><tr><th>#</th><th>Subject</th><th>Max Marks</th><th>Obtained</th><th>%</th><th>Grade</th><th>Status</th><th>Remarks</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r?._id||`blank-${i}`}><td>{i+1}</td><td>{r?<strong>{r.courseId?.name||'Subject'}</strong>:''}</td><td>{r?.totalMarks??''}</td><td>{r?.marksObtained??''}</td><td>{r?`${Number(r.percentage||0).toFixed(1)}%`:''}</td><td>{r?.grade||''}</td><td>{r?statusLabel(r.resultStatus):''}</td><td>{r?.remarks||''}</td></tr>)}</tbody></table>
     <section className="result-card-lower"><div className="result-card-box"><h3>Current Exam Summary</h3><p><span>Total Marks</span><strong>{summary.obtainedMarks??0} / {summary.totalMarks??0}</strong></p><p><span>Percentage</span><strong>{pct.toFixed(2)}%</strong></p><p><span>Overall Grade</span><strong>{summary.overallGrade||'—'}</strong></p><p><span>Result</span><strong className={`result-card-pass ${String(summary.overallStatus||'').toLowerCase()}`}>{summary.overallStatus||'—'}</strong></p></div><div className="result-card-box"><h3>Attendance</h3><p><span>Total Working Days</span><strong>{attendance.totalWorkingDays??0}</strong></p><p><span>Days Present</span><strong>{attendance.daysPresent??0}</strong></p><p><span>Days Absent</span><strong>{attendance.daysAbsent??0}</strong></p><p><span>Attendance %</span><strong>{Number(attendance.percentage||0).toFixed(1)}%</strong></p></div></section>
     <section className="result-card-history"><h3>Previous Exam Results</h3><table><thead><tr><th>Exam</th><th>Obtained</th><th>Total</th><th>Percentage</th></tr></thead><tbody>{previous.length?previous.map(x=><tr key={idOf(x.examId)}><td>{x.name}</td><td>{x.obtainedMarks}</td><td>{x.totalMarks}</td><td>{Number(x.percentage||0).toFixed(1)}%</td></tr>):<tr><td colSpan="4">No previous published exam result.</td></tr>}</tbody></table></section>
     <section className="result-card-remarks"><h3>System Generated Remarks</h3><p>{systemRemarks}</p></section>
     <section className="result-card-signatures"><div><i/><span>Exam Controller</span></div><div><i/><span>Verified By</span></div><div><i/><span>Principal</span></div></section>
-    <footer className="result-card-footer"><span>Generated: {new Date().toLocaleDateString()}</span><strong>{c.educationalSlogan||'eduNex Education Management System'}</strong><span>eduNex</span></footer>
+    <footer className="result-card-footer"><span>Generated: {new Date().toLocaleDateString()}</span><strong className="result-card-footer-contact">{footerContact||'—'}</strong><span>eduNex</span></footer>
   </article>;
 }
 
 export default function ExamsPage(){
   const {user,college}=useAuth();
   const resultCardRef=useRef(null);
+  const bulkResultCardsRef=useRef(null);
   const [searchParams,setSearchParams]=useSearchParams();
   const [tab,setTabState]=useState(searchParams.get('tab')||'exams');
   const [busy,setBusy]=useState(false);const [message,setMessage]=useState('');const [error,setError]=useState('');
@@ -67,7 +67,7 @@ export default function ExamsPage(){
   const [batchSectionIds,setBatchSectionIds]=useState([]);const [batchProgramIds,setBatchProgramIds]=useState([]);const [batchSubjectKey,setBatchSubjectKey]=useState('');
   const [scheduleFilter,setScheduleFilter]=useState({examId:'',programId:'',sectionId:''});
   const [marksExam,setMarksExam]=useState('');const [selectedSchedule,setSelectedSchedule]=useState('');const [roster,setRoster]=useState([]);const [rosterMeta,setRosterMeta]=useState(null);
-  const [resultExam,setResultExam]=useState('');const [resultProgram,setResultProgram]=useState('');const [resultSection,setResultSection]=useState('');const [resultCard,setResultCard]=useState(null);const [resultPrintMode,setResultPrintMode]=useState(()=>localStorage.getItem('edunex_result_card_print_mode')||'blank');
+  const [resultExam,setResultExam]=useState('');const [resultProgram,setResultProgram]=useState('');const [resultSection,setResultSection]=useState('');const [resultCard,setResultCard]=useState(null);const [bulkResultCards,setBulkResultCards]=useState([]);const [bulkPrinting,setBulkPrinting]=useState(false);const [resultPrintMode,setResultPrintMode]=useState(()=>localStorage.getItem('edunex_result_card_print_mode')||'blank');
   const [analysis,setAnalysis]=useState(null);const [analysisFilter,setAnalysisFilter]=useState({examId:'',sessionId:'',programId:'',sectionId:'',courseId:'',teacherId:''});
   const perms=new Set([...(user?.permissions||[]),...(user?.effectivePermissions||[])]);const can=p=>user?.systemRole==='platform_owner'||perms.has('*')||perms.has(p);const isTeacher=(user?.roleCodes||[]).includes('teacher')&&!!user?.linkedEmployeeId;const canEnterMarks=isTeacher||can('ENTER_EXAM_MARKS');
 
@@ -143,20 +143,38 @@ export default function ExamsPage(){
   async function reopenMarks(){if(!confirm('Reopen this paper for correction?'))return;clearNotice();try{await api.post(`/exams/schedules/${selectedSchedule}/reopen`);setMessage('Marks reopened.');await openRoster(selectedSchedule,false);await loadAll();}catch(e){setError(errText(e));}}
   async function viewResultCard(examId,studentId){clearNotice();try{const {data}=await api.get(`/exams/result-card/${examId}/${studentId}`);setResultCard(data);}catch(e){setError(errText(e));}}
   function changeResultPrintMode(mode){setResultPrintMode(mode);localStorage.setItem('edunex_result_card_print_mode',mode);}
-  function printResultCard(){
-    const node=resultCardRef.current;if(!node)return;
-    const popup=window.open('',`result-card-${Date.now()}`,'width=1000,height=900');if(!popup)return;
-    const styles=[...document.querySelectorAll('link[rel="stylesheet"],style')].map(el=>el.outerHTML).join('');
-    const clone=node.cloneNode(true);clone.classList.toggle('result-card-preprinted',resultPrintMode==='preprinted');clone.classList.toggle('result-card-blank',resultPrintMode!=='preprinted');
+  function openResultPrintWindow(html,title='Result Card'){
+    const popup=window.open('',`result-card-${Date.now()}`,'width=1000,height=900');if(!popup)return false;
+    const css=[...document.styleSheets].map(sheet=>{try{return [...sheet.cssRules].map(rule=>rule.cssText).join('\n');}catch{return '';}}).join('\n');
     popup.document.open();
-    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><base href="${window.location.origin}/">${styles}<title>Result Card</title></head><body class="result-card-print-window">${clone.outerHTML}</body></html>`);
+    popup.document.write(`<!doctype html><html><head><meta charset="utf-8"><base href="${window.location.origin}/"><title>${title}</title><style>${css}</style></head><body class="result-card-print-window">${html}</body></html>`);
     popup.document.close();
-    const ready=async()=>{
-      try{if(popup.document.fonts?.ready)await popup.document.fonts.ready;const imgs=[...popup.document.images];await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;})));}catch{}
-      setTimeout(()=>{try{popup.focus();popup.print();}catch{}},120);
-    };
+    const ready=async()=>{try{if(popup.document.fonts?.ready)await popup.document.fonts.ready;const imgs=[...popup.document.images];await Promise.all(imgs.map(img=>img.complete?Promise.resolve():new Promise(resolve=>{img.onload=resolve;img.onerror=resolve;})));}catch{}setTimeout(()=>{try{popup.focus();popup.print();}catch{}},120);};
     popup.onafterprint=()=>{try{popup.close();}catch{}};
     if(popup.document.readyState==='complete')ready();else popup.onload=ready;
+    return true;
+  }
+  async function printSectionResultCards(){
+    clearNotice();
+    if(!resultExam||!resultSection){setError('Select an Exam and a Section before printing the complete section.');return;}
+    const students=resultRows.map(x=>x.student).filter(Boolean);
+    if(!students.length){setError('No result cards are available for the selected section.');return;}
+    setBulkPrinting(true);
+    try{
+      const cards=[];
+      for(const student of students){const {data}=await api.get(`/exams/result-card/${resultExam}/${idOf(student)}`);cards.push({...data,college:data.college||college,printMode:resultPrintMode});}
+      setBulkResultCards(cards);
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      const source=bulkResultCardsRef.current;if(!source)throw new Error('Bulk Result Card print view could not be prepared.');
+      const clones=[...source.querySelectorAll('.result-card-sheet')].map(node=>{const clone=node.cloneNode(true);clone.classList.toggle('result-card-preprinted',resultPrintMode==='preprinted');clone.classList.toggle('result-card-blank',resultPrintMode!=='preprinted');return clone.outerHTML;});
+      if(!clones.length)throw new Error('No Result Cards were prepared for printing.');
+      openResultPrintWindow(`<div class="result-card-bulk-print">${clones.join('')}</div>`,'Section Result Cards');
+    }catch(e){setError(errText(e));}finally{setBulkPrinting(false);}
+  }
+  function printResultCard(){
+    const node=resultCardRef.current;if(!node)return;
+    const clone=node.cloneNode(true);clone.classList.toggle('result-card-preprinted',resultPrintMode==='preprinted');clone.classList.toggle('result-card-blank',resultPrintMode!=='preprinted');
+    openResultPrintWindow(clone.outerHTML,'Result Card');
   }
 
 
@@ -195,10 +213,13 @@ export default function ExamsPage(){
     {tab==='results'&&<>
       <div className="exam-page-head"><div><h2>Results</h2><p>Review compiled/published examination results and open individual Result Cards.</p></div></div>
       <div className="exam-filter-grid"><label>Exam<select value={resultExam} onChange={e=>setResultExam(e.target.value)}><option value="">All Exams</option>{exams.map(e=><option key={e._id} value={e._id}>{e.name} • {e.academicSessionId?.name}</option>)}</select></label><label>Program / Class<select value={resultProgram} onChange={e=>{setResultProgram(e.target.value);setResultSection('');}}><option value="">All Programs / Classes</option>{programs.map(p=><option key={p._id} value={p._id}>{p.name}</option>)}</select></label><label>Section<select value={resultSection} onChange={e=>setResultSection(e.target.value)}><option value="">All Sections</option>{resultSections.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}</select></label></div>
+      <div className="exam-result-bulk-actions"><button type="button" className="exam-btn primary" disabled={!resultExam||!resultSection||bulkPrinting||!resultRows.length} onClick={printSectionResultCards}>{bulkPrinting?'Preparing Section Result Cards…':'Print Section Result Cards'}</button><span>Select a specific Exam and Section to print one A4 Result Card per student in a single print job.</span></div>
       <div className="exam-table-wrap"><table className="exam-table"><thead><tr><th>Roll No</th><th>Student</th><th>Father Name</th><th>Subjects</th><th>Obtained</th><th>Total</th><th>Percentage</th><th>Status</th><th>Action</th></tr></thead><tbody>{resultRows.map(x=><tr key={idOf(x.student)}><td>{x.student?.rollNo||'—'}</td><td><strong>{x.student?.name||'Student'}</strong></td><td>{x.student?.fatherName||'—'}</td><td>{x.items.length}</td><td>{x.obtained}</td><td>{x.total}</td><td>{x.percentage.toFixed(2)}%</td><td><span className={`exam-result-status ${x.status.toLowerCase()}`}>{x.status}</span></td><td>{resultExam?<button className="exam-btn small" onClick={()=>viewResultCard(resultExam,idOf(x.student))}>Result Card</button>:<span className="muted">Select Exam</span>}</td></tr>)}{!resultRows.length&&<tr><td colSpan="9" className="empty">No results found for the selected filters.</td></tr>}</tbody></table></div>
     </>}
 
     {resultCard&&<div className="exam-modal-backdrop result-card-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)setResultCard(null);}}><div className="exam-modal result-card-modal"><div className="result-card-modal-actions"><label className="result-card-print-mode">Print Mode<select value={resultPrintMode} onChange={e=>changeResultPrintMode(e.target.value)}><option value="blank">Blank Paper</option><option value="preprinted">Preprinted Result Card</option></select></label><button className="exam-btn secondary" onClick={printResultCard}>Print / PDF</button><button className="exam-modal-close" onClick={()=>setResultCard(null)}>×</button></div><ResultCardSheet refEl={resultCardRef} data={{...resultCard,college:resultCard.college||college,printMode:resultPrintMode}}/><div className="exam-footer-actions result-card-screen-actions"><span className="result-card-mode-note">{resultPrintMode==='preprinted'?'Preprinted mode prints variable student/result data only.':'Blank Paper prints the complete Result Card design.'}</span><button className="exam-btn secondary" onClick={printResultCard}>Print / PDF</button><button className="exam-btn primary" onClick={()=>setResultCard(null)}>Close</button></div></div></div>}
+ 
+    {!!bulkResultCards.length&&<div className="result-card-bulk-source" ref={bulkResultCardsRef} aria-hidden="true">{bulkResultCards.map((card,i)=><ResultCardSheet key={`${idOf(card.student)||'student'}-${i}`} data={card}/>)}</div>}
  
     {tab==='analytics'&&<><div className="exam-card"><div className="exam-section-title"><div><h3>Exam Analytics</h3><p>Teacher, class/program, section, subject and wing performance with charts.</p></div>{analysis&&<PrintButtons onExcel={()=>exportWorkbook('exam-analytics',{Teachers:analysis.teacherWise,Programs:analysis.programWise,Classes:analysis.classWise,Subjects:analysis.subjectWise,Wings:analysis.wingWise})}/>}</div><div className="analysis-filter-grid"><label>Exam<select value={analysisFilter.examId} onChange={e=>setAnalysisFilter(f=>({...f,examId:e.target.value}))}><option value="">All Exams</option>{exams.map(x=><option key={x._id} value={x._id}>{x.name}</option>)}</select></label><label>Session<select value={analysisFilter.sessionId} onChange={e=>setAnalysisFilter(f=>({...f,sessionId:e.target.value}))}><option value="">All Sessions</option>{sessions.map(x=><option key={x._id} value={x._id}>{x.name||x.sessionName}</option>)}</select></label><label>Program/Class<select value={analysisFilter.programId} onChange={e=>setAnalysisFilter(f=>({...f,programId:e.target.value,sectionId:''}))}><option value="">All Programs/Classes</option>{programs.map(x=><option key={x._id} value={x._id}>{x.name}</option>)}</select></label><label>Section<select value={analysisFilter.sectionId} onChange={e=>setAnalysisFilter(f=>({...f,sectionId:e.target.value}))}><option value="">All Sections</option>{sections.filter(x=>!analysisFilter.programId||idOf(x.programId)===analysisFilter.programId).map(x=><option key={x._id} value={x._id}>{x.name}</option>)}</select></label><label>Subject<select value={analysisFilter.courseId} onChange={e=>setAnalysisFilter(f=>({...f,courseId:e.target.value}))}><option value="">All Subjects</option>{courses.map(x=><option key={x._id} value={x._id}>{x.name}</option>)}</select></label><label>Teacher<select value={analysisFilter.teacherId} onChange={e=>setAnalysisFilter(f=>({...f,teacherId:e.target.value}))}><option value="">All Teachers</option>{(analysis?.meta?.teachers||[]).map(x=><option key={x._id} value={x._id}>{x.name}</option>)}</select></label></div></div>{analysis&&<div className="analytics-print-report"><AnalyticsReportHeader college={analysis.college} title="Exam Analytics Report" subtitle={[exams.find(x=>idOf(x)===analysisFilter.examId)?.name,sessions.find(x=>idOf(x)===analysisFilter.sessionId)?.name].filter(Boolean).join(' • ')||'All selected academic data'}/><div className="kpis"><div><span>Students</span><strong>{analysis.summary.students}</strong></div><div><span>Average</span><strong>{analysis.summary.average}%</strong></div><div><span>Pass Rate</span><strong>{analysis.summary.passRate}%</strong></div><div><span>Highest</span><strong>{analysis.summary.highest}%</strong></div></div><ReportTable title="Teacher-wise Analysis — all assigned classes" rows={analysis.teacherWise}/><ReportTable title="Program / Class-wise Analysis" rows={analysis.programWise}/><ReportTable title="Section-wise Analysis" rows={analysis.classWise}/><ReportTable title="Subject-wise Analysis" rows={analysis.subjectWise}/><ReportTable title="Wing-wise Analysis" rows={analysis.wingWise}/></div>}</>}
  </section>;

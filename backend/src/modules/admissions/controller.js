@@ -4,6 +4,7 @@ const Program=require('../../models/Program');
 const AcademicSession=require('../../models/AcademicSession');
 const College=require('../../models/College');
 const Wing=require('../../models/Wing');
+const Employee=require('../../models/Employee');
 const {audit}=require('../../services/auditService');
 const seq=require('../../services/sequenceService');
 const {executePaged}=require('../../utils/pagination');
@@ -56,6 +57,12 @@ exports.createInquiry=async(req,res)=>{
   const referenceDetail=String(req.body.referenceDetail||'').trim();
   if(!allowedReferenceTypes.includes(referenceType))throw Object.assign(new Error('Valid Reference is required'),{status:400});
   if(['student','staff','other'].includes(referenceType)&&!referenceDetail)throw Object.assign(new Error('Reference Detail is required for the selected Reference'),{status:400});
+  let referenceStaffId;
+  if(referenceType==='staff'){
+    referenceStaffId=String(req.body.referenceStaffId||'').trim();
+    const staff=referenceStaffId?await Employee.findOne({_id:referenceStaffId,collegeId}):null;
+    if(!staff)throw Object.assign(new Error('Please select a valid staff member from the Staff Reference list'),{status:400});
+  }
 
   const previousResults=Array.isArray(req.body.previousResults)
     ? req.body.previousResults.map(item=>({
@@ -83,6 +90,7 @@ exports.createInquiry=async(req,res)=>{
     academicSessionId:academicSession._id,
     referenceType,
     referenceDetail:referenceDetail||undefined,
+    referenceStaffId:referenceType==='staff'?referenceStaffId:undefined,
     status:'pending',
     notes:req.body.notes
   });
@@ -181,6 +189,7 @@ async function submitInquiryForm(req,res){
     previousResults:inquiry.previousResults||[],
     referenceType:inquiry.referenceType,
     referenceDetail:inquiry.referenceDetail,
+    referenceStaffId:inquiry.referenceStaffId,
     status:'form_submitted',
     resultStatus:'awaiting_result',
     formSubmittedAt:new Date(),
@@ -203,63 +212,116 @@ exports.admitInquiry=submitInquiryForm;
 
 
 
-// Admissions reporting: Inquiry / Not Interested / Form Submitted.
-// Uses the existing Inquiry lifecycle as the source of truth; no duplicate report data is stored.
+// Staff lookup for inquiry references. Includes both current and left employees.
+exports.referenceStaff=async(req,res)=>{
+  const collegeId=collegeIdOf(req);
+  const rows=await Employee.find({collegeId})
+    .select('employeeNo employeeCode name cnic mobileNo phone designation designationId category isActive')
+    .populate('designationId','name')
+    .sort({isActive:-1,name:1,employeeNo:1})
+    .lean();
+  return res.json(rows);
+};
+
+// Admissions reporting across the inquiry and admission lifecycle.
+// Inquiry statuses remain sourced from Inquiry; later admission stages are sourced from AdmissionApplication.
 exports.admissionReport=async(req,res)=>{
   const collegeId=collegeIdOf(req);
   const type=String(req.query.type||'all').trim().toLowerCase();
-  const allowed=new Set(['all','inquiry','not_interested','form_submitted']);
+  const allowed=new Set(['all','inquiry','not_interested','form_submitted','incomplete_forms','fee_pending','provisional','confirmed','staff_references']);
   if(!allowed.has(type))throw Object.assign(new Error('Invalid admissions report type'),{status:400});
 
-  const q=req.tenantFilter();
-  if(type==='inquiry')q.status={$in:['pending','followed_up']};
-  if(type==='not_interested')q.status='not_interested';
-  if(type==='form_submitted')q.status='form_submitted';
-  if(req.query.academicSessionId)q.academicSessionId=req.query.academicSessionId;
-  if(req.query.programId)q.programId=req.query.programId;
-
+  const common=req.tenantFilter();
+  if(req.query.academicSessionId)common.academicSessionId=req.query.academicSessionId;
+  if(req.query.programId)common.programId=req.query.programId;
   if(req.query.wingId&&!req.query.programId){
     const programIds=await Program.find({collegeId,wingId:req.query.wingId}).distinct('_id');
-    q.programId={$in:programIds};
+    common.programId={$in:programIds};
   }
-
   if(req.query.from||req.query.to){
-    q.createdAt={};
-    if(req.query.from){const d=new Date(`${req.query.from}T00:00:00`);if(!Number.isNaN(d.getTime()))q.createdAt.$gte=d;}
-    if(req.query.to){const d=new Date(`${req.query.to}T23:59:59.999`);if(!Number.isNaN(d.getTime()))q.createdAt.$lte=d;}
-    if(!Object.keys(q.createdAt).length)delete q.createdAt;
+    common.createdAt={};
+    if(req.query.from){const d=new Date(`${req.query.from}T00:00:00`);if(!Number.isNaN(d.getTime()))common.createdAt.$gte=d;}
+    if(req.query.to){const d=new Date(`${req.query.to}T23:59:59.999`);if(!Number.isNaN(d.getTime()))common.createdAt.$lte=d;}
+    if(!Object.keys(common.createdAt).length)delete common.createdAt;
   }
 
-  const [rows,college,sessions,programs,wings,counts]=await Promise.all([
-    Inquiry.find(q)
-      .populate({path:'programId',select:'name code wingId',populate:{path:'wingId',select:'name code'}})
-      .populate('academicSessionId','name startDate endDate isCurrent')
-      .populate('admissionApplicationId','formNo status rollNo')
-      .sort({createdAt:-1}).lean(),
+  if(type==='staff_references'){
+    const staffQ={...common,referenceType:'staff'};
+    const [inquiries,college,sessions,programs,wings,employees]=await Promise.all([
+      Inquiry.find(staffQ).populate({path:'programId',select:'name code wingId',populate:{path:'wingId',select:'name code'}}).populate('academicSessionId','name').populate('admissionApplicationId','formNo status rollNo').sort({createdAt:-1}).lean(),
+      College.findById(collegeId).select('name code address contactNo email website logoUrl educationalSlogan').lean(),
+      AcademicSession.find({collegeId}).select('name startDate endDate isCurrent').sort({startDate:-1,name:-1}).lean(),
+      Program.find({collegeId,isActive:{$ne:false}}).select('name code wingId academicType offeringType').sort({name:1}).lean(),
+      Wing.find({collegeId,isActive:{$ne:false}}).select('name code').sort({name:1}).lean(),
+      Employee.find({collegeId}).select('employeeNo employeeCode name designation designationId category isActive').populate('designationId','name').sort({name:1}).lean()
+    ]);
+    const byId=new Map(employees.map(e=>[String(e._id),{...e,references:[]}])) ;
+    // Staff Reference reports intentionally count linked employee IDs only.
+    // Free-text legacy references are migrated to Student references by the one-time script.
+    for(const row of inquiries){
+      const key=row.referenceStaffId?String(row.referenceStaffId):'';
+      if(key&&byId.has(key))byId.get(key).references.push(row);
+    }
+    const staffSummary=Array.from(byId.values()).filter(x=>x.references.length).map(x=>({...x,referenceCount:x.references.length})).sort((a,b)=>b.referenceCount-a.referenceCount||String(a.name).localeCompare(String(b.name)));
+    return res.json({college,rows:inquiries,staffSummary,meta:{sessions,programs,wings},counts:{total:inquiries.length}});
+  }
+
+  const inquiryBase={...common};
+  const inquiryQ={...inquiryBase};
+  if(type==='inquiry')inquiryQ.status={$in:['pending','followed_up']};
+  if(type==='not_interested')inquiryQ.status='not_interested';
+  if(type==='form_submitted')inquiryQ.status='form_submitted';
+
+  const applicationTypeMap={incomplete_forms:'form_submitted',fee_pending:'fee_pending',provisional:'provisional',confirmed:'confirmed'};
+  const applicationStatus=applicationTypeMap[type];
+
+  const [college,sessions,programs,wings,totalInquiries,pendingInquiries,notInterested,formSubmitted]=await Promise.all([
     College.findById(collegeId).select('name code address contactNo email website logoUrl educationalSlogan').lean(),
     AcademicSession.find({collegeId}).select('name startDate endDate isCurrent').sort({startDate:-1,name:-1}).lean(),
     Program.find({collegeId,isActive:{$ne:false}}).select('name code wingId academicType offeringType').sort({name:1}).lean(),
     Wing.find({collegeId,isActive:{$ne:false}}).select('name code').sort({name:1}).lean(),
-    Inquiry.aggregate([
-      {$match:{collegeId}},
-      {$group:{
-        _id:null,
-        inquiry:{$sum:{$cond:[{$in:['$status',['pending','followed_up']]},1,0]}},
-        notInterested:{$sum:{$cond:[{$eq:['$status','not_interested']},1,0]}},
-        formSubmitted:{$sum:{$cond:[{$eq:['$status','form_submitted']},1,0]}}
-      }}
-    ])
+    Inquiry.countDocuments(inquiryBase),
+    Inquiry.countDocuments({...inquiryBase,status:{$in:['pending','followed_up']}}),
+    Inquiry.countDocuments({...inquiryBase,status:'not_interested'}),
+    Inquiry.countDocuments({...inquiryBase,status:'form_submitted'})
   ]);
 
-  const summary=counts[0]||{inquiry:0,notInterested:0,formSubmitted:0};
-  const inquiryCount=Number(summary.inquiry||0);
-  const notInterestedCount=Number(summary.notInterested||0);
-  const formSubmittedCount=Number(summary.formSubmitted||0);
+  let rows=[];
+  if(applicationStatus){
+    const appQ={...common,status:applicationStatus};
+    const apps=await AdmissionApplication.find(appQ)
+      .populate({path:'programId',select:'name code wingId',populate:{path:'wingId',select:'name code'}})
+      .populate('academicSessionId','name startDate endDate isCurrent')
+      .populate('inquiryId','inquiryNo notes createdAt')
+      .sort({createdAt:-1}).lean();
+    rows=apps.map(a=>({
+      _id:a._id,
+      inquiryNo:a.inquiryId?.inquiryNo||'',
+      studentName:a.studentName,
+      fatherName:a.fatherName,
+      contactNo:a.contactNo,
+      academicSessionId:a.academicSessionId,
+      programId:a.programId,
+      status:type,
+      applicationStatus:a.status,
+      admissionApplicationId:{_id:a._id,formNo:a.formNo,status:a.status,rollNo:a.rollNo},
+      formSubmittedAt:a.formSubmittedAt,
+      createdAt:a.createdAt,
+      notes:a.inquiryId?.notes||''
+    }));
+  }else{
+    rows=await Inquiry.find(inquiryQ)
+      .populate({path:'programId',select:'name code wingId',populate:{path:'wingId',select:'name code'}})
+      .populate('academicSessionId','name startDate endDate isCurrent')
+      .populate('admissionApplicationId','formNo status rollNo')
+      .sort({createdAt:-1}).lean();
+  }
+
   res.json({
     college,
     rows,
     meta:{sessions,programs,wings},
-    counts:{inquiry:inquiryCount,notInterested:notInterestedCount,formSubmitted:formSubmittedCount,total:inquiryCount+notInterestedCount+formSubmittedCount}
+    counts:{total:totalInquiries,pending:pendingInquiries,notInterested,formSubmitted}
   });
 };
 

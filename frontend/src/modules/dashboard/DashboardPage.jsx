@@ -83,8 +83,7 @@ export default function Dashboard(){
     <section className="dashboard-modules">
       <div className="dashboard-section-heading">
         <div>
-          <p className="dashboard-eyebrow">Workspace</p>
-          <h2>Modules</h2>
+          <h2>Dashboard</h2>
           <p className="dashboard-subtitle">Open a module to continue your work.</p>
         </div>
       </div>
@@ -98,7 +97,7 @@ export default function Dashboard(){
         >
           <span className="module-card-icon"><ModuleIcon label={module.label}/></span>
           <span className="module-card-content">
-            <strong>{module.label}</strong>
+            <strong>{module.label==='College Profile'?'Institute Profile':module.label}</strong>
             <small>{module.description}</small>
           </span>
           <span className="module-card-arrow" aria-hidden="true">›</span>

@@ -14,6 +14,7 @@ export default function InquiriesPage(){
   const [inquiries,setInquiries]=useState([]);
   const [programs,setPrograms]=useState([]);
   const [sessions,setSessions]=useState([]);
+  const [referenceStaff,setReferenceStaff]=useState([]);
   const [inquiryForm,setInquiryForm]=useState(blankInquiry);
   const [showInquiryModal,setShowInquiryModal]=useState(false);
   const [followUpRow,setFollowUpRow]=useState(null);
@@ -32,12 +33,14 @@ export default function InquiriesPage(){
   const inquiryPager=usePagination(filteredInquiries, `${filterField}|${filterValue}`);
 
   async function loadLookups(){
-    const [programRes,sessionRes]=await Promise.all([
+    const [programRes,sessionRes,staffRes]=await Promise.all([
       api.get('/academics/programs'),
-      api.get('/academics/sessions')
+      api.get('/academics/sessions'),
+      api.get('/admissions/reference-staff')
     ]);
     setPrograms(programRes.data||[]);
     setSessions(sessionRes.data||[]);
+    setReferenceStaff(staffRes.data||[]);
   }
   function freshInquiry(){
     const current=sessions.find(s=>s.isCurrent)||null;
@@ -479,7 +482,8 @@ export default function InquiriesPage(){
                       referenceType:e.target.value,
                       referenceDetail:['student','staff','other'].includes(e.target.value)
                         ? inquiryForm.referenceDetail
-                        : ''
+                        : '',
+                      referenceStaffId:e.target.value==='staff'?inquiryForm.referenceStaffId:''
                     })}
                   >
                     <option value="">Select Reference</option>
@@ -492,18 +496,32 @@ export default function InquiriesPage(){
                 {['student','staff','other'].includes(inquiryForm.referenceType) ? (
                   <label>
                     <span>Reference Detail *</span>
-                    <input
+                    {inquiryForm.referenceType==='staff' ? <>
+                      <input
+                        required
+                        list="inquiry-staff-reference-options"
+                        autoComplete="off"
+                        placeholder="Type staff name, employee no., CNIC or phone"
+                        value={inquiryForm.referenceDetail}
+                        onChange={e=>{
+                          const value=e.target.value;
+                          const match=referenceStaff.find(staff=>{
+                            const label=`${staff.name} — ${staff.employeeNo||staff.employeeCode||'No ID'} — ${staff.isActive?'Current':'Left'}`;
+                            return label===value;
+                          });
+                          setInquiryForm({...inquiryForm,referenceDetail:match?match.name:value,referenceStaffId:match?._id||''});
+                        }}
+                      />
+                      <datalist id="inquiry-staff-reference-options">
+                        {referenceStaff.map(staff=><option key={staff._id} value={`${staff.name} — ${staff.employeeNo||staff.employeeCode||'No ID'} — ${staff.isActive?'Current':'Left'}`}>{[staff.designationId?.name||staff.designation,staff.cnic,staff.mobileNo||staff.phone].filter(Boolean).join(' • ')}</option>)}
+                      </datalist>
+                      <small className="staff-reference-help">Current and left staff are both available.</small>
+                    </> : <input
                       required
-                      placeholder={
-                        inquiryForm.referenceType==='student'
-                          ? 'Student name or roll no.'
-                          : inquiryForm.referenceType==='staff'
-                            ? 'Staff name'
-                            : 'Reference detail'
-                      }
+                      placeholder={inquiryForm.referenceType==='student'?'Student name or roll no.':'Reference detail'}
                       value={inquiryForm.referenceDetail}
                       onChange={e=>setInquiryForm({...inquiryForm,referenceDetail:e.target.value})}
-                    />
+                    />}
                   </label>
                 ) : (
                   <div className="inquiry-form-grid-placeholder" aria-hidden="true"/>

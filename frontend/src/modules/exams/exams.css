@@ -1,5 +1,5 @@
 .exams-page{display:flex;flex-direction:column;gap:12px}.exams-top-tabs{margin-bottom:2px}.exam-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}.exam-page-head h2,.exam-card h3,.exam-section-title h3{margin:0}.exam-page-head p,.exam-section-title p{margin:4px 0 0;color:#64748b}.exam-head-actions,.exam-row-actions,.exam-footer-actions,.exam-chip-row{display:flex;gap:8px;flex-wrap:wrap}.exam-btn,.exam-row-actions button{border:1px solid #cbd5e1!important;background:#fff!important;color:#0f172a!important;border-radius:7px;padding:8px 12px;font-weight:700;cursor:pointer}.exam-btn.primary,.exam-row-actions button:first-child{background:#2457dc!important;color:#fff!important;border-color:#2457dc!important}.exam-btn.success{background:#15803d!important;color:#fff!important;border-color:#15803d!important}.exam-btn.danger,.exam-row-actions .danger{color:#b91c1c!important;border-color:#fecaca!important;background:#fff!important}.exam-btn.secondary{background:#fff!important;color:#0f172a!important}.exam-btn.small{padding:6px 10px}.exam-btn:disabled{opacity:.55;cursor:not-allowed}.exam-alert{padding:10px 12px;border-radius:8px;font-weight:600}.exam-alert.success{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.exam-alert.error{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}.exam-card{background:#fff;border:1px solid #dbe3ef;border-radius:10px;padding:14px}.exam-editor{box-shadow:0 8px 24px rgba(15,23,42,.07)}.exam-setup-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:12px}.exam-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.exam-form-grid,.exam-filter-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}.exam-form-grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}.exam-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr));background:#f8fafc;border:1px solid #dbe3ef;border-radius:10px;padding:10px}.exam-filter-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.exam-form-grid label,.exam-filter-grid label,.exam-card>label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#334155}.exam-form-grid .wide{grid-column:1/-1}.exam-form-grid input,.exam-form-grid select,.exam-form-grid textarea,.exam-filter-grid input,.exam-filter-grid select,.exam-card>label input,.grading-row input,.marks-table input{width:100%;box-sizing:border-box;border:1px solid #cbd5e1;border-radius:7px;padding:8px 9px;background:#fff;color:#0f172a}.exam-form-grid textarea{min-height:64px;resize:vertical}.exam-check{display:flex!important;flex-direction:row!important;align-items:center;gap:7px!important;font-weight:600!important}.exam-check input{width:auto!important}.exam-check.block{align-self:end;margin-bottom:8px}.exam-chip-row{margin-top:10px}.exam-chip{font-size:12px;background:#eef4ff;color:#1e40af;border-radius:999px;padding:5px 9px}.grading-table{display:flex;flex-direction:column;gap:5px;margin:10px 0}.grading-head,.grading-row{display:grid;grid-template-columns:80px 80px 70px 70px 1fr;gap:6px;align-items:center}.grading-head{font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase}.exam-table-wrap{width:100%;overflow:auto;border:1px solid #dbe3ef;border-radius:10px;background:#fff}.exam-table{width:100%;border-collapse:collapse;font-size:13px}.exam-table th{background:#f8fafc;text-align:left;color:#334155;padding:9px;border-bottom:1px solid #dbe3ef;white-space:nowrap}.exam-table td{padding:9px;border-bottom:1px solid #e2e8f0;vertical-align:middle}.exam-table tr:last-child td{border-bottom:0}.exam-table td small{display:block;color:#64748b;margin-top:2px}.exam-table .empty{text-align:center;color:#64748b;padding:28px}.exam-status,.exam-result-status{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:#e2e8f0;color:#334155;white-space:nowrap}.exam-status.draft{background:#f1f5f9}.exam-status.scheduled,.exam-status.marks_entry{background:#dbeafe;color:#1d4ed8}.exam-status.compiled{background:#dcfce7;color:#166534}.exam-status.published{background:#ede9fe;color:#6d28d9}.exam-result-status.pass{background:#dcfce7;color:#166534}.exam-result-status.fail{background:#fee2e2;color:#991b1b}.exam-paper-summary{display:flex;gap:18px;align-items:center;flex-wrap:wrap;padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;color:#1e3a8a}.marks-table input[type="checkbox"]{width:16px;height:16px}.marks-table td:nth-child(5){min-width:110px}.marks-table td:nth-child(9){min-width:160px}.muted{color:#94a3b8}.exam-modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:22px}.exam-modal{background:#fff;border-radius:12px;width:min(980px,96vw);max-height:90vh;overflow:auto;padding:18px;box-shadow:0 24px 70px rgba(15,23,42,.28)}.exam-modal-close{width:34px;height:34px;border:1px solid #cbd5e1!important;border-radius:8px;background:#fff!important;color:#0f172a!important;font-size:22px;line-height:1;cursor:pointer}.result-card-student{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.result-card-student>div{border:1px solid #dbe3ef;border-radius:8px;padding:10px}.result-card-student small{display:block;color:#64748b;text-transform:uppercase;font-weight:700}.result-card-summary{display:flex;justify-content:flex-end;gap:20px;flex-wrap:wrap;padding:13px 0}.exam-footer-actions{justify-content:flex-end;margin-top:12px}@media(max-width:1000px){.exam-setup-grid{grid-template-columns:1fr}.exam-form-grid{grid-template-columns:repeat(2,1fr)}.result-card-student{grid-template-columns:repeat(2,1fr)}}@media(max-width:700px){.exam-page-head{align-items:stretch;flex-direction:column}.exam-form-grid,.exam-form-grid.three,.exam-filter-grid,.exam-filter-grid.two{grid-template-columns:1fr}.result-card-student{grid-template-columns:1fr}.grading-head,.grading-row{grid-template-columns:60px 60px 55px 55px minmax(120px,1fr)}}
-@media print{body *{visibility:hidden}.exam-modal,.exam-modal *{visibility:visible}.exam-modal{position:absolute;left:0;top:0;width:100%;max-height:none;box-shadow:none}.exam-modal-close,.exam-footer-actions{display:none!important}}
+@media print{body:not(.result-card-print-window) *{visibility:hidden}.exam-modal,.exam-modal *{visibility:visible}.exam-modal{position:absolute;left:0;top:0;width:100%;max-height:none;box-shadow:none}.exam-modal-close,.exam-footer-actions{display:none!important}}
 
 .exam-toolbar-below-filters{display:flex;justify-content:flex-end;margin:10px 0 12px;}
 
@@ -55,7 +55,9 @@
 
 /* Finalized A4 Result Card */
 .result-card-modal{width:min(1040px,98vw);padding:14px;background:#eef2f7}.result-card-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px}.result-card-screen-actions{padding:0 8px 4px}.result-card-sheet{--rc:#173f73;width:210mm;min-height:297mm;margin:0 auto;background:#fff;color:#172033;box-sizing:border-box;padding:10mm 11mm 8mm;font-family:Arial,Helvetica,sans-serif;box-shadow:0 6px 24px rgba(15,23,42,.12)}.result-card-brand{display:grid;grid-template-columns:25mm 1fr 25mm;align-items:center;gap:5mm;border-bottom:2px solid var(--rc);padding-bottom:3mm}.result-card-logo,.result-card-photo{width:23mm;height:23mm;display:flex;align-items:center;justify-content:center;border:1px solid #cbd5e1;border-radius:4px;overflow:hidden;color:#94a3b8;font-size:9px;text-align:center}.result-card-logo{border:0}.result-card-logo img,.result-card-photo img{width:100%;height:100%;object-fit:contain}.result-card-photo img{object-fit:cover}.result-card-brand-copy{text-align:center}.result-card-brand-copy h1{margin:0;color:var(--rc);font-size:22px;line-height:1.1}.result-card-slogan{margin:2px 0 4px!important;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#64748b}.result-card-brand-copy h2{margin:4px 0 1px;background:var(--rc);color:#fff;border-radius:4px;padding:5px;font-size:16px;letter-spacing:.08em}.result-card-brand-copy>p:last-child{margin:2px 0 0;font-size:9px;color:#475569}.result-card-contact{text-align:center;font-size:8px;color:#64748b;margin:2mm 0}.result-card-profile{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin:3mm 0}.result-card-profile>div{border:1px solid #b9c7d8;border-radius:5px;padding:2mm 3mm}.result-card-profile p{display:grid;grid-template-columns:33mm 1fr;margin:0;padding:1.3mm 0;border-bottom:1px solid #e2e8f0;font-size:9.5px}.result-card-profile p:last-child{border-bottom:0}.result-card-profile span{font-weight:700;color:#475569}.result-card-profile strong{font-weight:700}.result-card-marks,.result-card-history table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:8.5px}.result-card-marks th,.result-card-marks td,.result-card-history th,.result-card-history td{border:1px solid #aebdce;padding:1.45mm 1.2mm;text-align:center;height:6mm;box-sizing:border-box}.result-card-marks th,.result-card-history th{background:#173f73;color:#fff;font-weight:800}.result-card-marks th:nth-child(1){width:7mm}.result-card-marks th:nth-child(2){width:49mm}.result-card-marks th:nth-child(3),.result-card-marks th:nth-child(4){width:18mm}.result-card-marks th:nth-child(5){width:15mm}.result-card-marks th:nth-child(6){width:14mm}.result-card-marks th:nth-child(7){width:18mm}.result-card-marks td:nth-child(2){text-align:left}.result-card-marks small{font-size:8px;color:#64748b}.result-card-history{margin-top:3mm}.result-card-history h3,.result-card-box h3,.result-card-remarks h3{margin:0;padding:1.5mm 2mm;background:#e8eef8;color:#173f73;border:1px solid #b9c7d8;border-bottom:0;font-size:10px}.result-card-history table td{height:auto;padding:1.2mm}.result-card-lower{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:3mm}.result-card-box{border:1px solid #b9c7d8}.result-card-box p{display:flex;justify-content:space-between;margin:0;padding:1.2mm 2mm;border-top:1px solid #e2e8f0;font-size:9px}.result-card-pass{padding:1px 7px;border-radius:10px}.result-card-pass.pass{background:#dcfce7;color:#166534}.result-card-pass.fail{background:#fee2e2;color:#991b1b}.result-card-remarks{margin-top:3mm;border:1px solid #b9c7d8}.result-card-remarks h3{border:0;border-bottom:1px solid #b9c7d8}.result-card-remarks p{margin:0;min-height:9mm;padding:2mm;font-size:9px}.result-card-signatures{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin-top:5mm}.result-card-signatures div{text-align:center;font-size:8px;font-weight:700}.result-card-signatures i{display:block;height:9mm;border-bottom:1px solid #334155;margin:0 4mm}.result-card-footer{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:end;margin-top:4mm;padding-top:2mm;border-top:1px solid #173f73;font-size:7.5px;color:#475569}.result-card-footer strong{text-align:center;letter-spacing:.08em;text-transform:uppercase}.result-card-footer span:last-child{text-align:right;font-weight:700}.result-card-print-window{margin:0;background:#fff}.result-card-print-window .result-card-sheet{box-shadow:none;margin:0;width:210mm;min-height:297mm}.result-card-print-window .result-card-modal-actions,.result-card-print-window .result-card-screen-actions{display:none!important}@media(max-width:900px){.result-card-sheet{width:100%;min-height:auto}.result-card-brand{grid-template-columns:70px 1fr 70px}.result-card-profile{grid-template-columns:1fr}.result-card-modal{padding:8px}}@page{size:A4 portrait;margin:0}@media print{body.result-card-print-window{margin:0!important;padding:0!important}body.result-card-print-window .result-card-sheet{margin:0!important;box-shadow:none!important;page-break-after:avoid!important;break-after:avoid-page!important}.result-card-backdrop,.result-card-screen-actions,.result-card-modal-actions{display:none!important}}
-\n\n/* Result Card print hotfix: one-page A4, repeatable printing, logo-safe and preprinted mode. */
+
+
+/* Result Card print hotfix: one-page A4, repeatable printing, logo-safe and preprinted mode. */
 .result-card-print-mode{display:flex;align-items:center;gap:7px;margin-right:auto;font-size:12px;font-weight:800;color:#334155}.result-card-print-mode select{border:1px solid #cbd5e1;border-radius:7px;padding:7px 9px;background:#fff}.result-card-mode-note{margin-right:auto;color:#64748b;font-size:11px}.result-card-modal-actions{align-items:center}
 .result-card-logo img{display:block;max-width:100%;max-height:100%}
 .result-card-preprinted{box-shadow:none}
@@ -98,4 +100,83 @@
  body.result-card-print-window .result-card-history{margin-top:1.8mm!important}
  body.result-card-print-window .result-card-signatures{grid-template-columns:repeat(3,1fr)!important}
  body.result-card-print-window .result-card-signatures i{height:5.5mm!important;margin:0 7mm 1mm!important}
+}
+
+
+/* Result Card visual refinement 2026-09-29 */
+.result-card-sheet{position:relative;padding-top:11mm}
+.result-card-sheet:before{content:"";position:absolute;top:0;left:0;right:0;height:2.2mm;background:var(--rc);-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.result-card-brand-copy h1{text-transform:uppercase;font-size:calc(22px + 1pt)}
+.result-card-brand-copy h2{width:62%;margin:4px auto 1px;padding:3px 8px;font-size:calc(16px + 1pt);border-radius:3px}
+.result-card-slogan{font-size:calc(9px + 1pt)}
+.result-card-brand-copy>p:last-child{font-size:calc(9px + 1pt)}
+.result-card-profile p{font-size:calc(9.5px + 1pt)}
+.result-card-logo,.result-card-photo{font-size:calc(9px + 1pt)}
+.result-card-marks,.result-card-history table{font-size:calc(8.5px + 1pt)}
+.result-card-history h3,.result-card-box h3,.result-card-remarks h3{font-size:calc(10px + 1pt)}
+.result-card-box p,.result-card-remarks p{font-size:calc(9px + 1pt)}
+.result-card-signatures div{font-size:calc(8px + 1pt)}
+.result-card-footer{font-size:calc(7.5px + 1pt);grid-template-rows:auto auto;row-gap:1.2mm}
+.result-card-footer-contact{grid-column:1/-1;text-align:center;font-weight:600;color:#475569;letter-spacing:0;text-transform:none}
+@media print{
+ body.result-card-print-window .result-card-sheet{padding:7mm 9mm 5mm!important}
+ body.result-card-print-window .result-card-sheet:before{height:1.8mm!important}
+ body.result-card-print-window .result-card-brand-copy h1{font-size:calc(19px + 1pt)!important;text-transform:uppercase!important}
+ body.result-card-print-window .result-card-brand-copy h2{width:58%!important;margin:2px auto 0!important;padding:2px 7px!important;font-size:calc(14px + 1pt)!important}
+ body.result-card-print-window .result-card-slogan{font-size:calc(8px + 1pt)!important}
+ body.result-card-print-window .result-card-brand-copy>p:last-child{font-size:calc(8px + 1pt)!important}
+ body.result-card-print-window .result-card-profile p{font-size:calc(8.5px + 1pt)!important}
+ body.result-card-print-window .result-card-marks,body.result-card-print-window .result-card-history table{font-size:calc(7.7px + 1pt)!important}
+ body.result-card-print-window .result-card-history h3,body.result-card-print-window .result-card-box h3,body.result-card-print-window .result-card-remarks h3{font-size:calc(8.5px + 1pt)!important}
+ body.result-card-print-window .result-card-box p,body.result-card-print-window .result-card-remarks p{font-size:calc(8px + 1pt)!important}
+ body.result-card-print-window .result-card-signatures div{font-size:calc(7px + 1pt)!important}
+ body.result-card-print-window .result-card-footer{font-size:calc(6.5px + 1pt)!important;row-gap:.7mm!important}
+}
+
+
+/* Result Card refinement: wider side inset, +1pt typography, contact in center footer */
+.result-card-sheet{padding-left:24px;padding-right:24px}
+.result-card-brand-copy h1{font-size:calc(22px + 2pt)}
+.result-card-brand-copy h2{font-size:calc(16px + 2pt)}
+.result-card-slogan{font-size:calc(9px + 2pt)}
+.result-card-brand-copy>p:last-child{font-size:calc(9px + 2pt)}
+.result-card-profile p{font-size:calc(9.5px + 2pt)}
+.result-card-logo,.result-card-photo{font-size:calc(9px + 2pt)}
+.result-card-marks,.result-card-history table{font-size:calc(8.5px + 2pt)}
+.result-card-history h3,.result-card-box h3,.result-card-remarks h3{font-size:calc(10px + 2pt)}
+.result-card-box p,.result-card-remarks p{font-size:calc(9px + 2pt)}
+.result-card-signatures div{font-size:calc(8px + 2pt)}
+.result-card-footer{font-size:calc(7.5px + 2pt);grid-template-rows:auto;grid-template-columns:1fr 2fr 1fr;align-items:center}
+.result-card-footer-contact{grid-column:auto;text-align:center;font-weight:700;color:#475569;letter-spacing:0;text-transform:none}
+.result-card-footer>span:first-child{text-align:left}
+.result-card-footer>span:last-child{text-align:right}
+@media print{
+ body.result-card-print-window .result-card-sheet{padding-left:12mm!important;padding-right:12mm!important}
+ body.result-card-print-window .result-card-brand-copy h1{font-size:calc(19px + 2pt)!important}
+ body.result-card-print-window .result-card-brand-copy h2{font-size:calc(14px + 2pt)!important}
+ body.result-card-print-window .result-card-slogan{font-size:calc(8px + 2pt)!important}
+ body.result-card-print-window .result-card-brand-copy>p:last-child{font-size:calc(8px + 2pt)!important}
+ body.result-card-print-window .result-card-profile p{font-size:calc(8.5px + 2pt)!important}
+ body.result-card-print-window .result-card-marks,body.result-card-print-window .result-card-history table{font-size:calc(7.7px + 2pt)!important}
+ body.result-card-print-window .result-card-history h3,body.result-card-print-window .result-card-box h3,body.result-card-print-window .result-card-remarks h3{font-size:calc(8.5px + 2pt)!important}
+ body.result-card-print-window .result-card-box p,body.result-card-print-window .result-card-remarks p{font-size:calc(8px + 2pt)!important}
+ body.result-card-print-window .result-card-signatures div{font-size:calc(7px + 2pt)!important}
+ body.result-card-print-window .result-card-footer{font-size:calc(6.5px + 2pt)!important;grid-template-rows:auto!important;grid-template-columns:1fr 2fr 1fr!important;row-gap:0!important}
+ body.result-card-print-window .result-card-footer-contact{grid-column:auto!important}
+}
+
+
+/* Result Card exam-name, spacing and section bulk print 2026-09-29 */
+.result-card-brand-copy>p:last-child{font-size:calc(11px + 2pt);font-weight:700}
+.result-card-signatures{margin-top:8mm}
+.result-card-footer{margin-top:6mm}
+.exam-result-bulk-actions{display:flex;align-items:center;gap:12px;justify-content:flex-end;margin:10px 0 12px}
+.exam-result-bulk-actions span{font-size:12px;color:#64748b}
+.result-card-bulk-source{position:fixed;left:-10000px;top:0;width:210mm;visibility:hidden;pointer-events:none}
+@media print{
+ body.result-card-print-window .result-card-brand-copy>p:last-child{font-size:calc(10px + 2pt)!important;font-weight:700!important}
+ body.result-card-print-window .result-card-signatures{margin-top:5mm!important}
+ body.result-card-print-window .result-card-footer{margin-top:4mm!important}
+ body.result-card-print-window .result-card-bulk-print .result-card-sheet{break-after:page!important;page-break-after:always!important}
+ body.result-card-print-window .result-card-bulk-print .result-card-sheet:last-child{break-after:auto!important;page-break-after:auto!important}
 }
