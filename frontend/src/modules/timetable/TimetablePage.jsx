@@ -17,9 +17,12 @@ const oid=v=>String(v?._id||v||'');
 
 export default function Timetable(){
  const[searchParams,setSearchParams]=useSearchParams();
- const[tab,setTabState]=useState(searchParams.get('tab')||'assignments');
+ const initialTab=searchParams.get('tab')||'assignments';
+ const normalizedInitialTab=initialTab==='settings'?'bell':(['generate','verification'].includes(initialTab)?'timetable':initialTab);
+ const[tab,setTabState]=useState(normalizedInitialTab);
+ const[timetableTool,setTimetableTool]=useState(initialTab==='generate'?'generate':initialTab==='verification'?'verification':'whole');
  const setTab=next=>{setTabState(next);setSearchParams(prev=>{const copy=new URLSearchParams(prev);copy.set('tab',next);return copy;});};
- useEffect(()=>{const next=searchParams.get('tab')||'assignments';if(next!==tab)setTabState(next);},[searchParams]);
+ useEffect(()=>{const raw=searchParams.get('tab')||'assignments';const next=raw==='settings'?'bell':(['generate','verification'].includes(raw)?'timetable':raw);if(next!==tab)setTabState(next);if(raw==='generate')setTimetableTool('generate');else if(raw==='verification')setTimetableTool('verification');},[searchParams]);
  const[o,setO]=useState({settings:{},sessions:[],programs:[],sections:[],courses:[],teachers:[],rooms:[],branches:[],wings:[],profiles:[]});
  const[assignments,setAssignments]=useState([]);
  const[grid,setGrid]=useState([]);
@@ -215,19 +218,17 @@ export default function Timetable(){
   <div className="tt-head"><div><h1>Timetable</h1><p>Automatic timetable generation with college-wide teacher, class, room and constraint validation.</p></div></div>
   {error&&<div className="tt-error">{error}</div>}{message&&<div className="tt-success">{message}</div>}
   <div className="module-top-tabs tt-main-tabs">
-   <button className={tab==='assignments'?'active':''} onClick={()=>setTab('assignments')}>Data &amp; Assignments</button>
+   <button className={tab==='bell'?'active':''} onClick={()=>setTab('bell')}>Bell Timings</button>
+   <button className={tab==='assignments'?'active':''} onClick={()=>setTab('assignments')}>Subject Assignment</button>
    <button className={tab==='teachers'?'active':''} onClick={()=>setTab('teachers')}>Teachers</button>
    <button className={tab==='classes'?'active':''} onClick={()=>setTab('classes')}>Classes</button>
    <button className={tab==='rooms'?'active':''} onClick={()=>setTab('rooms')}>Rooms</button>
-   <button className={tab==='generate'?'active':''} onClick={()=>setTab('generate')}>Generate</button>
-   <button className={tab==='verification'?'active':''} onClick={()=>setTab('verification')}>Verification</button>
    <button className={tab==='timetable'?'active':''} onClick={()=>setTab('timetable')}>Timetable</button>
    <button className={tab==='reports'?'active':''} onClick={()=>setTab('reports')}>Reports</button>
-   <button className={tab==='settings'?'active':''} onClick={()=>setTab('settings')}>Settings</button>
   </div>
 
   {tab==='assignments'&&<section className="tt-panel">
-   <div className="tt-section-head"><div><h2>Data &amp; Teacher Assignments</h2><p>Classes, sections and subjects come from Academics/Students. Allocate each subject to its teacher once; generation will place lessons automatically.</p></div></div>
+   <div className="tt-section-head"><div><h2>Subject Assignment</h2><p>Classes, sections and subjects come from Academics/Students. Allocate each subject to its teacher once; generation will place lessons automatically.</p></div></div>
    <div className="tt-class-filter">
     <label>Session<select value={selection.academicSessionId} onChange={e=>setSelection({academicSessionId:e.target.value,sectionId:''})}><option value="">Select Session</option>{o.sessions.map(x=><option key={x._id} value={x._id}>{x.name}</option>)}</select></label>
     <label>Class / Section<select value={selection.sectionId} disabled={!selection.academicSessionId} onChange={e=>setSelection(v=>({...v,sectionId:e.target.value}))}><option value="">Select Class / Section</option>{sessionSections.map(x=><option key={x._id} value={x._id}>{x.programId?.name} / {x.name}</option>)}</select></label>
@@ -262,23 +263,25 @@ export default function Timetable(){
    {!view.sectionId
     ?<div className="tt-empty">Select a Class / Section to load its timetable and applicable schedule.</div>
     :!slots.length
-      ?<div className="tt-empty">No schedule is configured for this class. Define a College, Branch, Wing, Program/Class or Section schedule in <strong>Timetable → Settings</strong>.</div>
+      ?<div className="tt-empty">No schedule is configured for this class. Define a College, Branch, Wing, Program/Class or Section schedule in <strong>Timetable → Bell Timings</strong>.</div>
       :<>
        <div className="tt-grid-profile-note">Schedule: <strong>{resolvedGridProfile?.name||'College Default (legacy)'}</strong>{resolvedGridProfile&&<> • Scope: {profileScopeLabel(resolvedGridProfile)}</>}</div>
        <div className="tt-grid-wrap"><table className="tt-grid"><thead><tr><th>Day</th>{slots.map(s=><th key={s.periodNo}>{s.label}<small>{s.startTime}-{s.endTime}</small></th>)}</tr></thead><tbody>{working.map(d=><tr key={d}><th>{DAYS.find(x=>x[0]===d)?.[1]||d}</th>{slots.map(s=>{const row=grid.find(g=>g.dayOfWeek===dayNumber(d)&&g.startMinutes===((+s.startTime.slice(0,2))*60+(+s.startTime.slice(3,5))));return <td key={s.periodNo}>{row?<div className="tt-lesson"><strong>{row.courseId?.name}</strong><span>{row.sectionId?.name} • {row.teacherId?.name}</span></div>:<select defaultValue="" onChange={e=>{const a=assignments.find(x=>x._id===e.target.value);if(a)place(a,d,s.periodNo);e.target.value='';}}><option value="">+ Lesson</option>{assignments.filter(a=>oid(a.sectionId)===view.sectionId&&oid(a.academicSessionId)===view.academicSessionId).map(a=><option key={a._id} value={a._id}>{a.courseId?.name} — {a.teacherId?.name}</option>)}</select>}</td>})}</tr>)}</tbody></table></div>
       </>}
   </section>}
 
-  {tab==='timetable'&&<TimetableWholeView options={o}/>}
+  {tab==='timetable'&&<TimetableWholeView
+   options={o}
+   generator={<TimetableGenerator options={o} onChanged={async()=>{await load();await loadGrid();}}/>}
+   verification={<TimetableVerification options={o}/>}
+  />}
   {tab==='teachers'&&<TimetableTeachersTab options={o}/>}
   {tab==='classes'&&<TimetableClassesTab options={o} assignments={assignments}/>}
 
-  {tab==='generate'&&<TimetableGenerator options={o} onChanged={async()=>{await load();await loadGrid();}}/>}
-  {tab==='verification'&&<TimetableVerification options={o}/>}
   {tab==='reports'&&<TimetableReports options={o}/>}
 
-  {tab==='settings'&&<section className="tt-panel tt-settings-panel">
-   <div className="tt-section-head"><div><h2>Timetable Settings</h2><p>Create schedule profiles so different branches, wings, classes/programs or individual sections can use different start/end times and periods.</p></div></div>
+  {tab==='bell'&&<section className="tt-panel tt-settings-panel">
+   <div className="tt-section-head"><div><h2>Bell Timings</h2><p>Define working days, teaching periods and breaks for the college, branch, wing, class/program or individual section.</p></div></div>
    <div className="tt-settings-priority">Resolution priority: <strong>Section → Program/Class → Wing → Branch → College Default</strong></div>
    <form className="tt-settings-form" onSubmit={saveTimetableSettings}>
     <div className="tt-settings-scope">

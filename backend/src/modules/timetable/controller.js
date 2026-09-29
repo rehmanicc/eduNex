@@ -466,173 +466,132 @@ exports.generatePreview=async(req,res)=>{
 
  const maxSameSubjectPerDay=Math.max(1,Math.min(3,Number(b.maxSameSubjectPerDay||1)));
  const defaultTeacherMaxDaily=Math.max(1,Math.min(12,Number(b.defaultTeacherMaxDaily||6)));
-
  const sections=await generationSections(collegeId,academicSessionId,scopeType,scopeId);
  if(!sections.length)return res.status(400).json({error:'No active sections found for this generation scope'});
- const sectionIds=sections.map(s=>s._id);
- const sectionIdSet=new Set(sectionIds.map(id));
-
+ const sectionIds=sections.map(s=>s._id),sectionIdSet=new Set(sectionIds.map(id));
  const assignments=await TeacherAssignment.find({collegeId,academicSessionId,sectionId:{$in:sectionIds},isActive:true})
-   .populate('sectionId','name programId academicSessionId')
-   .populate('programId','name wingId branchId')
-   .populate('courseId','name code courseType')
-   .populate('teacherId','name employeeNo branchId')
-   .lean();
+   .populate('sectionId','name programId academicSessionId').populate('programId','name wingId branchId')
+   .populate('courseId','name code courseType').populate('teacherId','name employeeNo branchId').lean();
  if(!assignments.length)return res.status(400).json({error:'No teacher/subject assignments found for this scope'});
 
+ const assignmentMap=new Map(assignments.map(a=>[id(a._id),a]));
  const allExisting=await Timetable.find({collegeId,isActive:true}).lean();
- const targetExisting=allExisting.filter(r=>sectionIdSet.has(id(r.sectionId))&&id(r.academicSessionId)===id(academicSessionId));
+ const rawTarget=allExisting.filter(r=>sectionIdSet.has(id(r.sectionId))&&id(r.academicSessionId)===id(academicSessionId));
+ const targetExisting=effectiveTimetableRows(rawTarget,sectionIds);
  const outsideScope=allExisting.filter(r=>!sectionIdSet.has(id(r.sectionId))||id(r.academicSessionId)!==id(academicSessionId));
- const protectedInside=targetExisting.filter(r=>r.isLocked||r.source!=='generated'||(r.generationStatus==='published'&&mode!=='regenerate_unlocked'));
-
- let preservedGenerated=[];
- if(mode==='missing_only'){
-   preservedGenerated=targetExisting.filter(r=>r.source==='generated'&&r.generationStatus==='draft'&&!r.isLocked);
- }
- const fixed=[...outsideScope,...protectedInside,...preservedGenerated];
- const working=[...fixed];
+ const protectedInside=targetExisting.filter(r=>r.isLocked||r.source!=='generated');
+ const unlockedGenerated=targetExisting.filter(r=>r.source==='generated'&&!r.isLocked);
  const constraintMap=await teacherConstraintMap(collegeId);
  const classRulesMap=await classConstraintMap(collegeId);
- const draft=[],unallocated=[];
- let preferenceHits=0,preferenceMisses=0;
-
- const existingByAssignment=new Map();
- const protectedByAssignment=new Map();
- for(const row of protectedInside){
-   const key=id(row.teacherAssignmentId);
-   protectedByAssignment.set(key,(protectedByAssignment.get(key)||0)+1);
- }
- for(const row of [...protectedInside,...preservedGenerated]){
-   const key=id(row.teacherAssignmentId);
-   existingByAssignment.set(key,(existingByAssignment.get(key)||0)+1);
- }
- // A section/span uses the same resolved schedule profile throughout this preview.
- // Cache candidates so multiple subject assignments in one section do not repeat
- // Section + Program + ScheduleProfile database lookups.
  const candidateCache=new Map();
-
  const jobs=[...assignments].sort((a,b)=>Number(b.lessonSpan||1)-Number(a.lessonSpan||1)||Number(b.weeklyPeriods||1)-Number(a.weeklyPeriods||1));
- for(const a of jobs){
-   const required=Number(a.weeklyPeriods||1);
-   const already=mode==='missing_only'||mode==='improve'?Number(existingByAssignment.get(id(a._id))||0):Number(protectedByAssignment.get(id(a._id))||0);
-   const wanted=Math.max(0,required-already);
-   if(!wanted)continue;
 
-   const span=Number(a.lessonSpan||1);
-   const teacherConstraints=constraintMap.get(id(a.teacherId))||[];
-   const classConstraints=classRulesMap.get(id(a.sectionId))||[];
-   const teacherDailyMax=teacherMaxDaily(teacherConstraints,defaultTeacherMaxDaily);
-   const teacherConsecutiveMax=teacherMaxConsecutive(teacherConstraints,4);
-   const subjectDailyMax=Math.max(1,Math.min(4,Number(a.maxLessonsPerDay||maxSameSubjectPerDay)));
-   const candidateKey=`${id(a.sectionId)}:${span}`;
-   let candidates=candidateCache.get(candidateKey);
-   if(!candidates){
-     candidates=await candidateSlotsForSection(collegeId,a.sectionId._id||a.sectionId,span);
-     candidateCache.set(candidateKey,candidates);
-   }
-   if(!candidates.length){
-     unallocated.push({assignmentId:a._id,course:a.courseId?.name,teacher:a.teacherId?.name,section:a.sectionId?.name,remaining:wanted,reason:'No compatible schedule profile / consecutive slots'});
-     continue;
-   }
+ const countByAssignment=rows=>{const m=new Map();for(const r of rows){const k=id(r.teacherAssignmentId);m.set(k,(m.get(k)||0)+1);}return m;};
+ const asDraft=(row)=>{const a=assignmentMap.get(id(row.teacherAssignmentId));return{
+   collegeId,academicSessionId,teacherAssignmentId:row.teacherAssignmentId,sectionId:row.sectionId,courseId:row.courseId,teacherId:row.teacherId,
+   dayOfWeek:Number(row.dayOfWeek),startMinutes:Number(row.startMinutes),endMinutes:Number(row.endMinutes),room:row.room||'',divisionId:row.divisionId||null,
+   generationStatus:'draft',isLocked:false,source:'generated',sectionName:a?.sectionId?.name||'',programName:a?.programId?.name||'',courseName:a?.courseId?.name||'',teacherName:a?.teacherId?.name||''
+ };};
 
-   let placed=0;
-   while(placed<wanted){
-     const feasible=candidates.filter(c=>{
-       if(intervalConstraintBlocked(teacherConstraints,c.day,c.start,c.end))return false;
-       if(intervalConstraintBlocked(classConstraints,c.day,c.start,c.end))return false;
-       if(relativeClassBlocked(classConstraints,c))return false;
-       if(countTeacherDay(working,a.teacherId,c.day)>=teacherDailyMax)return false;
-       const classMax=teacherMaxDaily(classConstraints,20); if(working.filter(r=>id(r.sectionId)===id(a.sectionId)&&Number(r.dayOfWeek)===c.day).length>=classMax)return false;
-       if(countSubjectDay(working,a.sectionId,a.courseId,c.day)>=subjectDailyMax)return false;
-       if(wouldExceedConsecutive(working,a.teacherId,c.day,c.start,c.end,teacherConsecutiveMax))return false;
-       return !hasConflict(working,{teacherId:a.teacherId,sectionId:a.sectionId,divisionId:a.divisionId,room:a.preferredRoom||'',day:c.day,start:c.start,end:c.end});
-     }).map(c=>{
-       const teacherDay=countTeacherDay(working,a.teacherId,c.day);
-       const sectionDay=working.filter(r=>id(r.sectionId)===id(a.sectionId)&&Number(r.dayOfWeek)===c.day).length;
-       const sameSubjectDay=countSubjectDay(working,a.sectionId,a.courseId,c.day);
-       const preferred=preferredScore(teacherConstraints,c.day,c.start,c.end);
-       let score=preferred-(teacherDay*2)-(sectionDay*1.25)-(a.spreadAcrossWeek!==false?sameSubjectDay*5:sameSubjectDay);
-
-       const sameDayTeacher=working.filter(r=>id(r.teacherId)===id(a.teacherId)&&Number(r.dayOfWeek)===c.day).sort((x,y)=>x.startMinutes-y.startMinutes);
-       if(sameDayTeacher.length){
-         const nearest=Math.min(...sameDayTeacher.map(r=>Math.min(Math.abs(c.start-Number(r.endMinutes)),Math.abs(Number(r.startMinutes)-c.end))));
-         if(nearest===0)score+=3; // compact teacher schedule
-         else if(nearest>60)score-=2;
-       }
-
-       const resolvedSlots=(c.profile?.scheduleSlots||[]);
-       const teachingSlots=resolvedSlots.filter(s=>!s.isBreak);
-       const firstStart=teachingSlots.length?minutes(teachingSlots[0].startTime):null;
-       const lastEnd=teachingSlots.length?minutes(teachingSlots[teachingSlots.length-1].endTime):null;
-       const avoidFirst=teacherConstraints.some(x=>x.type==='avoid_first');
-       const avoidLast=teacherConstraints.some(x=>x.type==='avoid_last');
-       if(avoidFirst&&firstStart!==null&&c.start===firstStart)score-=5;
-       if(avoidLast&&lastEnd!==null&&c.end===lastEnd)score-=5;
-       return{...c,score,preferred:preferred>0};
-     }).sort((x,y)=>y.score-x.score||x.day-y.day||x.start-y.start);
-
-     if(!feasible.length)break;
-     const c=feasible[0];
-     if(c.preferred)preferenceHits++;else if(teacherConstraints.some(x=>x.type==='preferred'))preferenceMisses++;
-     const row={
-       collegeId,academicSessionId,
-       teacherAssignmentId:a._id,sectionId:a.sectionId._id||a.sectionId,courseId:a.courseId._id||a.courseId,teacherId:a.teacherId._id||a.teacherId,
-       dayOfWeek:c.day,startMinutes:c.start,endMinutes:c.end,room:a.preferredRoom||'',divisionId:a.divisionId?._id||a.divisionId||null,
-       generationStatus:'draft',isLocked:false,source:'generated'
-     };
-     working.push(row);
-     draft.push({...row,sectionName:a.sectionId?.name||'',programName:a.programId?.name||'',courseName:a.courseId?.name||'',teacherName:a.teacherId?.name||''});
-     placed++;
-   }
-   if(placed<wanted)unallocated.push({assignmentId:a._id,course:a.courseId?.name,teacher:a.teacherId?.name,section:a.sectionId?.name,remaining:wanted-placed,reason:'No conflict-free slot satisfies current hard constraints'});
- }
-
- const conflicts=[];
- // Conflict verification only compares lessons on the same day. This preserves
- // the existing overlap rules while avoiding a full cross-day O(n²) scan.
- const rowsByDay=new Map();
- for(const row of working){
-   const day=Number(row.dayOfWeek);
-   if(!rowsByDay.has(day))rowsByDay.set(day,[]);
-   rowsByDay.get(day).push(row);
- }
- for(const dayRows of rowsByDay.values()){
-   dayRows.sort((a,b)=>Number(a.startMinutes)-Number(b.startMinutes));
-   for(let i=0;i<dayRows.length;i++){
-     const x=dayRows[i];
-     for(let j=i+1;j<dayRows.length;j++){
-       const y=dayRows[j];
-       if(Number(y.startMinutes)>=Number(x.endMinutes))break;
-       if(!overlap(Number(x.startMinutes),Number(x.endMinutes),Number(y.startMinutes),Number(y.endMinutes)))continue;
-       if(id(x.teacherId)===id(y.teacherId))conflicts.push('Teacher conflict');
-       if(id(x.sectionId)===id(y.sectionId)){
-         const dx=id(x.divisionId),dy=id(y.divisionId);
-         if(!dx||!dy||dx===dy)conflicts.push('Section conflict');
-       }
-       if(x.room&&y.room&&String(x.room).toLowerCase()===String(y.room).toLowerCase())conflicts.push('Room conflict');
+ async function solve(baseRows,existingCounts,attempt=0){
+   const working=[...baseRows],draft=[],unallocated=[];
+   let preferenceHits=0,preferenceMisses=0;
+   for(const a of jobs){
+     const required=Number(a.weeklyPeriods||1),already=Number(existingCounts.get(id(a._id))||0),wanted=Math.max(0,required-already);
+     if(!wanted)continue;
+     const span=Number(a.lessonSpan||1),teacherConstraints=constraintMap.get(id(a.teacherId))||[],classConstraints=classRulesMap.get(id(a.sectionId))||[];
+     const teacherDailyMax=teacherMaxDaily(teacherConstraints,defaultTeacherMaxDaily),teacherConsecutiveMax=teacherMaxConsecutive(teacherConstraints,4);
+     const subjectDailyMax=Math.max(1,Math.min(4,Number(a.maxLessonsPerDay||maxSameSubjectPerDay)));
+     const candidateKey=`${id(a.sectionId)}:${span}`;
+     let candidates=candidateCache.get(candidateKey);if(!candidates){candidates=await candidateSlotsForSection(collegeId,a.sectionId._id||a.sectionId,span);candidateCache.set(candidateKey,candidates);}
+     if(!candidates.length){unallocated.push({assignmentId:a._id,course:a.courseId?.name,teacher:a.teacherId?.name,section:a.sectionId?.name,remaining:wanted,reason:'No compatible teaching periods are configured for this lesson length',details:['No compatible schedule profile / consecutive periods']});continue;}
+     let placed=0,lastReasons={};
+     while(placed<wanted){
+       const checked=candidates.map(c=>{
+         const reasons=[];
+         if(intervalConstraintBlocked(teacherConstraints,c.day,c.start,c.end))reasons.push('Teacher unavailable');
+         if(intervalConstraintBlocked(classConstraints,c.day,c.start,c.end)||relativeClassBlocked(classConstraints,c))reasons.push('Class/section unavailable');
+         if(countTeacherDay(working,a.teacherId,c.day)>=teacherDailyMax)reasons.push('Teacher daily limit');
+         const classMax=teacherMaxDaily(classConstraints,20);if(working.filter(r=>id(r.sectionId)===id(a.sectionId)&&Number(r.dayOfWeek)===c.day).length>=classMax)reasons.push('Class daily limit');
+         if(countSubjectDay(working,a.sectionId,a.courseId,c.day)>=subjectDailyMax)reasons.push('Subject daily limit');
+         if(wouldExceedConsecutive(working,a.teacherId,c.day,c.start,c.end,teacherConsecutiveMax))reasons.push('Teacher consecutive-period limit');
+         if(hasConflict(working,{teacherId:a.teacherId,sectionId:a.sectionId,divisionId:a.divisionId,room:a.preferredRoom||'',day:c.day,start:c.start,end:c.end}))reasons.push('Teacher/section/room conflict');
+         return{c,reasons};
+       });
+       const feasible=checked.filter(x=>!x.reasons.length).map(({c})=>{
+         const teacherDay=countTeacherDay(working,a.teacherId,c.day),sectionDay=working.filter(r=>id(r.sectionId)===id(a.sectionId)&&Number(r.dayOfWeek)===c.day).length,sameSubjectDay=countSubjectDay(working,a.sectionId,a.courseId,c.day);
+         const preferred=preferredScore(teacherConstraints,c.day,c.start,c.end);let score=preferred-(teacherDay*2)-(sectionDay*1.25)-(a.spreadAcrossWeek!==false?sameSubjectDay*5:sameSubjectDay);
+         const sameDayTeacher=working.filter(r=>id(r.teacherId)===id(a.teacherId)&&Number(r.dayOfWeek)===c.day).sort((x,y)=>x.startMinutes-y.startMinutes);
+         if(sameDayTeacher.length){const nearest=Math.min(...sameDayTeacher.map(r=>Math.min(Math.abs(c.start-Number(r.endMinutes)),Math.abs(Number(r.startMinutes)-c.end))));if(nearest===0)score+=3;else if(nearest>60)score-=2;}
+         const teachingSlots=(c.profile?.scheduleSlots||[]).filter(s=>!s.isBreak),firstStart=teachingSlots.length?minutes(teachingSlots[0].startTime):null,lastEnd=teachingSlots.length?minutes(teachingSlots[teachingSlots.length-1].endTime):null;
+         if(teacherConstraints.some(x=>x.type==='avoid_first')&&firstStart!==null&&c.start===firstStart)score-=5;
+         if(teacherConstraints.some(x=>x.type==='avoid_last')&&lastEnd!==null&&c.end===lastEnd)score-=5;
+         return{...c,score,preferred:preferred>0};
+       }).sort((x,y)=>{
+         const rank=v=>{const seed=(Number(v.day)*131+Number(v.start)*17+attempt*97+String(a._id).split('').reduce((n,ch)=>n+ch.charCodeAt(0),0))>>>0;return ((seed*1103515245+12345)>>>0)%1000;};
+         // Attempt 0 keeps the normal quality-first order. Retry attempts add a
+         // bounded deterministic variation so different valid arrangements are
+         // explored when the greedy order strands a later card.
+         const sx=x.score+(attempt?rank(x)/100:0),sy=y.score+(attempt?rank(y)/100:0);
+         return sy-sx||x.day-y.day||x.start-y.start;
+       });
+       if(!feasible.length){lastReasons={};for(const x of checked)for(const r of x.reasons)lastReasons[r]=(lastReasons[r]||0)+1;break;}
+       const c=feasible[0];if(c.preferred)preferenceHits++;else if(teacherConstraints.some(x=>x.type==='preferred'))preferenceMisses++;
+       const row={collegeId,academicSessionId,teacherAssignmentId:a._id,sectionId:a.sectionId._id||a.sectionId,courseId:a.courseId._id||a.courseId,teacherId:a.teacherId._id||a.teacherId,dayOfWeek:c.day,startMinutes:c.start,endMinutes:c.end,room:a.preferredRoom||'',divisionId:a.divisionId?._id||a.divisionId||null,generationStatus:'draft',isLocked:false,source:'generated'};
+       working.push(row);draft.push({...row,sectionName:a.sectionId?.name||'',programName:a.programId?.name||'',courseName:a.courseId?.name||'',teacherName:a.teacherId?.name||''});placed++;
      }
+     if(placed<wanted){const details=Object.entries(lastReasons).sort((a,b)=>b[1]-a[1]).map(([name,count])=>`${name}: ${count} candidate period(s) blocked`);unallocated.push({assignmentId:a._id,course:a.courseId?.name,teacher:a.teacherId?.name,section:a.sectionId?.name,remaining:wanted-placed,reason:details[0]||'No conflict-free period satisfies the current hard constraints',details});}
    }
+   return{working,draft,unallocated,preferenceHits,preferenceMisses};
  }
 
- const unallocatedCount=unallocated.reduce((n,x)=>n+Number(x.remaining||0),0);
- const hardPenalty=(new Set(conflicts)).size*20+unallocatedCount*4;
- const softPenalty=preferenceMisses*1.5;
- const qualityScore=Math.max(0,Math.min(100,Math.round(100-hardPenalty-softPenalty)));
- res.json({
-   scope:{academicSessionId,scopeType,scopeId},mode,
-   sections:sections.length,assignments:assignments.length,
-   draft,unallocated,conflicts:[...new Set(conflicts)],
-   quality:{score:qualityScore,preferenceHits,preferenceMisses,hardConflicts:[...new Set(conflicts)].length},
-   summary:{
-     generatedLessons:draft.length,
-     unallocatedLessons:unallocatedCount,
-     fixedLessons:fixed.length,
-     protectedLessons:protectedInside.length,
-     preservedDraftLessons:preservedGenerated.length
+ async function solveBest(baseRows,existingCounts,maxAttempts=28){
+   let best=null;
+   for(let attempt=0;attempt<maxAttempts;attempt++){
+     const current=await solve(baseRows,existingCounts,attempt);
+     const missing=current.unallocated.reduce((n,x)=>n+Number(x.remaining||0),0);
+     if(!best||missing<best.missing||(missing===best.missing&&current.preferenceHits>best.result.preferenceHits))best={result:current,missing};
+     if(missing===0)return current;
    }
- });
-};
+   return best.result;
+ }
 
+ // Keep only as many existing unlocked cards as the current assignment still requires.
+ // This lets Regenerate handle both increased and reduced weekly lesson counts.
+ const protectedCounts=countByAssignment(protectedInside),keptUnlocked=[];
+ const keptCount=new Map();
+ for(const row of unlockedGenerated.sort((a,b)=>Number(a.dayOfWeek)-Number(b.dayOfWeek)||Number(a.startMinutes)-Number(b.startMinutes))){
+   const key=id(row.teacherAssignmentId),a=assignmentMap.get(key);if(!a)continue;
+   const allowance=Math.max(0,Number(a.weeklyPeriods||0)-Number(protectedCounts.get(key)||0));
+   const used=keptCount.get(key)||0;if(used<allowance){keptUnlocked.push(row);keptCount.set(key,used+1);}
+ }
+
+ let result,shuffleUsed=false,replacementDraft=[];
+ if(mode==='generate_new'){
+   const base=[...outsideScope,...protectedInside],counts=countByAssignment(protectedInside);
+   result=await solveBest(base,counts);replacementDraft=[...result.draft];
+ }else if(mode==='regenerate_unlocked'||mode==='improve'){
+   // First preserve the current arrangement and place only missing cards.
+   const preserved=[...protectedInside,...keptUnlocked],base=[...outsideScope,...preserved];
+   result=await solveBest(base,countByAssignment(preserved),8);
+   if(result.unallocated.length){
+     // Missing cards do not fit: release unlocked generated cards and rebuild around locked/manual cards.
+     shuffleUsed=true;result=await solveBest([...outsideScope,...protectedInside],countByAssignment(protectedInside));replacementDraft=[...result.draft];
+   }else{
+     const changed=keptUnlocked.length!==unlockedGenerated.length||result.draft.length>0;
+     replacementDraft=changed?[...keptUnlocked.map(asDraft),...result.draft]:[];
+   }
+ }else{
+   const preserved=[...protectedInside,...keptUnlocked],base=[...outsideScope,...preserved];result=await solveBest(base,countByAssignment(preserved),8);replacementDraft=[...keptUnlocked.map(asDraft),...result.draft];
+ }
+
+ const effectiveWorking=[...outsideScope,...protectedInside,...replacementDraft];
+ const conflicts=[],rowsByDay=new Map();for(const row of effectiveWorking){const day=Number(row.dayOfWeek);if(!rowsByDay.has(day))rowsByDay.set(day,[]);rowsByDay.get(day).push(row);}
+ for(const dayRows of rowsByDay.values()){dayRows.sort((a,b)=>Number(a.startMinutes)-Number(b.startMinutes));for(let i=0;i<dayRows.length;i++){const x=dayRows[i];for(let j=i+1;j<dayRows.length;j++){const y=dayRows[j];if(Number(y.startMinutes)>=Number(x.endMinutes))break;if(!overlap(Number(x.startMinutes),Number(x.endMinutes),Number(y.startMinutes),Number(y.endMinutes)))continue;if(id(x.teacherId)===id(y.teacherId))conflicts.push('Teacher conflict');if(id(x.sectionId)===id(y.sectionId)){const dx=id(x.divisionId),dy=id(y.divisionId);if(!dx||!dy||dx===dy)conflicts.push('Section conflict');}if(x.room&&y.room&&String(x.room).toLowerCase()===String(y.room).toLowerCase())conflicts.push('Room conflict');}}}
+ const unallocatedCount=result.unallocated.reduce((n,x)=>n+Number(x.remaining||0),0),requiredCards=assignments.reduce((n,a)=>n+Number(a.weeklyPeriods||0),0);
+ const hardPenalty=(new Set(conflicts)).size*20+unallocatedCount*4,softPenalty=result.preferenceMisses*1.5,qualityScore=Math.max(0,Math.min(100,Math.round(100-hardPenalty-softPenalty)));
+ res.json({scope:{academicSessionId,scopeType,scopeId},mode,sections:sections.length,assignments:assignments.length,draft:replacementDraft,unallocated:result.unallocated,conflicts:[...new Set(conflicts)],shuffleUsed,quality:{score:qualityScore,preferenceHits:result.preferenceHits,preferenceMisses:result.preferenceMisses,hardConflicts:[...new Set(conflicts)].length},summary:{requiredCards,placedCards:requiredCards-unallocatedCount,generatedLessons:replacementDraft.length,newCards:result.draft.length,movedOrRebuiltCards:shuffleUsed?replacementDraft.length:0,unallocatedLessons:unallocatedCount,fixedLessons:outsideScope.length+protectedInside.length,protectedLessons:protectedInside.length}});
+};
 exports.commitGeneration=async(req,res)=>{
  const collegeId=cid(req),b=req.body||{};
  const preview=Array.isArray(b.draft)?b.draft:[];
@@ -846,6 +805,14 @@ exports.setLessonLock=async(req,res)=>{
  lesson.isLocked=req.body?.isLocked!==false;
  await lesson.save();
  res.json({ok:true,isLocked:lesson.isLocked});
+};
+
+exports.setLessonLocksBulk=async(req,res)=>{
+ const collegeId=cid(req),ids=[...new Set((req.body?.ids||[]).filter(validId).map(String))];
+ if(!ids.length)return res.status(400).json({error:'Select at least one timetable lesson'});
+ const isLocked=req.body?.isLocked!==false;
+ const result=await Timetable.updateMany({_id:{$in:ids},collegeId,isActive:true},{$set:{isLocked}});
+ res.json({ok:true,isLocked,matched:result.matchedCount??result.n??0,updated:result.modifiedCount??result.nModified??0});
 };
 
 

@@ -33,5 +33,6 @@ r.post('/grid',permit(P.MANAGE_ACADEMICS),wrap(c.place));
 r.delete('/grid/:id',permit(P.MANAGE_ACADEMICS),wrap(c.removeSlot));
 r.get('/validate',permit(P.VIEW_ACADEMICS),wrap(c.validate));
 r.get('/verify-detailed',permit(P.VIEW_ACADEMICS),wrap(c.verifyDetailed));
+r.put('/grid/bulk-lock',permit(P.MANAGE_ACADEMICS),wrap(c.setLessonLocksBulk));
 r.put('/grid/:id/lock',permit(P.MANAGE_ACADEMICS),wrap(c.setLessonLock));
 module.exports=r;

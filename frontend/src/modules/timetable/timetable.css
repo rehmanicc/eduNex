@@ -313,3 +313,90 @@
  body.tt-printing .tt-summary-sheet{flex:1}
 
 }
+
+/* ===== Whole timetable period-grid + lock controls ===== */
+.tt-whole-period-table{min-width:max-content;margin:0;table-layout:fixed}
+.tt-whole-period-table th,.tt-whole-period-table td{padding:3px;border:1px solid #e2e8f0}
+.tt-whole-period-table .tt-row-head{position:sticky;left:0;z-index:5;min-width:170px;background:#f8fafc}
+.tt-day-head{text-align:center!important;font-size:11px;white-space:nowrap}
+.tt-period-head{min-width:78px;text-align:center!important;cursor:pointer;user-select:none;font-size:11px}
+.tt-period-head:hover,.tt-row-label:hover{background:#eef2ff!important}
+.tt-period-head.locked,.tt-row-label.locked{background:#f1f5f9!important}
+.tt-period-head span{margin-left:3px;font-size:9px}
+.tt-row-label{position:sticky;left:0;z-index:3;min-width:170px;max-width:190px;background:#f8fafc;cursor:pointer;user-select:none;font-size:10px}
+.tt-row-label>span:first-child{display:inline-block;max-width:155px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+.tt-row-label>span:last-child{margin-left:4px;font-size:9px}
+.tt-period-cell{min-width:78px;vertical-align:top!important;padding:2px!important}
+.tt-whole-period-table .tt-whole-lesson{position:relative;min-width:70px;gap:0;padding:3px 20px 3px 4px;margin:1px 0;border-radius:4px;font-size:9px;line-height:1.15}
+.tt-whole-period-table .tt-whole-lesson strong{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-whole-period-table .tt-whole-lesson span{font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tt-whole-period-table .tt-lock-icon{top:1px;right:1px;width:17px;height:17px;min-width:17px!important;font-size:9px!important}
+.tt-reason-list{margin:4px 0 0;padding-left:16px;color:#64748b;font-size:11px}
+
+.tt-unlock-all{white-space:nowrap;align-self:flex-start}
+
+/* Full-screen aSc-style Whole Timetable workspace */
+.tt-workspace-launch{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.tt-workspace-launch h2,.tt-workspace-launch p{margin:0}.tt-workspace-launch p{margin-top:4px;color:#64748b}
+.tt-workspace-overlay{position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.34);padding:10px;display:flex}
+.tt-workspace-shell{width:100%;height:100%;min-width:0;background:#eef2f7;border:1px solid #94a3b8;border-radius:8px;box-shadow:0 20px 60px rgba(15,23,42,.28);display:flex;flex-direction:column;overflow:hidden}
+.tt-workspace-toolbar{min-height:58px;background:#fff;border-bottom:1px solid #cbd5e1;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tt-workspace-toolbar h2{font-size:18px;margin:0}.tt-workspace-toolbar p{font-size:11px;color:#64748b;margin:2px 0 0}
+.tt-workspace-actions{display:flex;align-items:center;gap:8px}.tt-workspace-close{width:34px!important;height:34px;padding:0!important;min-width:34px!important;border-radius:6px!important;font-size:24px!important;line-height:1!important;background:#fff!important;color:#334155!important;border:1px solid #cbd5e1!important}
+.tt-workspace-filters{padding:7px 10px;background:#f8fafc;border-bottom:1px solid #cbd5e1;display:flex;gap:7px;flex-wrap:wrap}.tt-workspace-filters select{min-width:160px;padding:6px 8px;font-size:12px}
+.tt-workspace-grid{flex:1;min-height:0;overflow:auto;background:#d8dee8;border-bottom:1px solid #94a3b8}
+.tt-asc-table{border-collapse:separate;border-spacing:1px;background:#94a3b8;min-width:max-content;width:100%;table-layout:fixed}
+.tt-asc-table th,.tt-asc-table td{padding:0;border:0}
+.tt-asc-corner{position:sticky;left:0;top:0;z-index:7;width:86px;min-width:86px;max-width:86px;background:#e5e7eb;font-size:11px;text-align:left;padding-left:7px!important}
+.tt-asc-day{position:sticky;top:0;z-index:5;height:23px;background:#e5e7eb;color:#334155;font-size:10px;font-weight:700;text-align:center;letter-spacing:.02em}
+.tt-asc-period{position:sticky;top:24px;z-index:5;width:54px;min-width:54px;max-width:54px;height:22px;background:#f8fafc;color:#334155;text-align:center;font-size:10px;cursor:pointer}.tt-asc-period:hover{background:#dbeafe}.tt-asc-period.locked{background:#fef3c7}.tt-asc-period small{font-size:8px;margin-left:2px}
+.tt-asc-section{position:sticky;left:0;z-index:4;width:86px;min-width:86px;max-width:86px;height:34px;background:#f1f5f9;color:#0f172a;font-size:11px;font-weight:700;text-align:left;padding:0 6px!important;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tt-asc-section:hover{background:#dbeafe}.tt-asc-section.locked{background:#fef3c7}.tt-asc-section small{font-size:8px;margin-left:3px}
+.tt-asc-cell{width:54px;min-width:54px;max-width:54px;height:34px;background:#fff;vertical-align:middle;overflow:hidden}
+.tt-asc-card{position:relative;width:100%!important;height:34px!important;min-width:0!important;padding:2px 3px!important;border:0!important;border-radius:0!important;background:#fff!important;color:#0f172a!important;display:flex!important;align-items:center;justify-content:center;font-size:9px!important;font-weight:700;line-height:1.05;text-align:center;overflow:hidden;cursor:pointer;box-shadow:inset 0 -2px 0 #cbd5e1!important}.tt-asc-card span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tt-asc-card:hover,.tt-asc-card.selected{outline:2px solid #2563eb!important;outline-offset:-2px}.tt-asc-card.locked{background:#fef3c7!important}.tt-asc-card small{position:absolute;right:1px;bottom:0;font-size:7px}
+.tt-asc-empty{background:#fff;padding:20px!important;text-align:center;color:#64748b}
+.tt-workspace-footer{height:92px;min-height:92px;background:#cbd5e1;padding:6px 8px;display:flex;align-items:stretch}
+.tt-card-info{width:360px;max-width:45vw;background:#fff;border:1px solid #94a3b8;padding:6px 9px;display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:10px;color:#334155;overflow:hidden}.tt-card-info>strong{grid-column:1/-1;font-size:12px;color:#0f172a}.tt-card-info>span:first-child{grid-column:1/-1;align-self:center;color:#64748b}.tt-info-lock{min-width:0!important;width:max-content!important;padding:3px 7px!important;font-size:9px!important;margin-top:2px}
+@media(max-width:800px){.tt-workspace-overlay{padding:0}.tt-workspace-shell{border-radius:0}.tt-workspace-filters select{min-width:130px}.tt-card-info{width:100%;max-width:none}.tt-workspace-footer{height:100px;min-height:100px}}
+
+/* 2026-09-29 compact whole-timetable + consolidated workflow */
+.tt-timetable-hub{display:flex;flex-direction:column;gap:8px}
+.tt-timetable-tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;background:#fff;border:1px solid #dbe3ee;border-radius:8px}
+.tt-timetable-tools button{background:#f8fafc!important;color:#334155!important;border:1px solid #cbd5e1!important;padding:7px 12px!important;min-width:0!important}
+.tt-timetable-tools button.active{background:#2456d8!important;color:#fff!important;border-color:#2456d8!important}
+.tt-asc-table{border-spacing:0!important;background:#94a3b8!important}
+.tt-asc-table th,.tt-asc-table td{border-right:1px solid #94a3b8!important;border-bottom:1px solid #94a3b8!important}
+.tt-asc-period{width:46px!important;min-width:46px!important;max-width:46px!important;height:20px!important}
+.tt-asc-cell{width:46px!important;min-width:46px!important;max-width:46px!important;height:32px!important;padding:0!important}
+.tt-asc-section{height:32px!important}
+.tt-asc-card{height:32px!important;margin:0!important;padding:1px!important;border-radius:0!important;box-shadow:none!important;font-size:9px!important}
+.tt-asc-card span{display:block!important;position:relative!important;z-index:2!important;color:#0f172a!important;font-size:9px!important;font-weight:800!important;line-height:1!important;max-width:43px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.tt-asc-card small{z-index:3!important;font-size:6px!important;right:0!important;bottom:0!important}
+
+/* 2026-09-29 final whole timetable workspace refinement */
+.tt-workspace-actions>button:not(.tt-workspace-close){min-width:0!important;padding:6px 9px!important;font-size:11px!important}
+.tt-workspace-actions>button.active{background:#1d4ed8!important;color:#fff!important;border-color:#1d4ed8!important}
+.tt-workspace-toolpanel{position:absolute;z-index:30;top:58px;right:10px;width:min(920px,calc(100vw - 40px));max-height:calc(100vh - 90px);overflow:auto;background:#fff;border:1px solid #94a3b8;box-shadow:0 12px 35px rgba(15,23,42,.25)}
+.tt-workspace-shell{position:relative}
+.tt-toolpanel-head{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:#e2e8f0;border-bottom:1px solid #94a3b8}.tt-toolpanel-head button{min-width:28px!important;width:28px!important;height:28px!important;padding:0!important;background:#fff!important;color:#334155!important}
+.tt-toolpanel-body{padding:8px}.tt-toolpanel-body .tt-panel{border:0!important;padding:4px!important;box-shadow:none!important}
+.tt-asc-table{border-spacing:0!important;border-collapse:collapse!important}
+.tt-asc-table th,.tt-asc-table td{padding:0!important}
+.tt-asc-cell{width:52px!important;min-width:52px!important;max-width:52px!important;height:34px!important;background:#fff!important}
+.tt-asc-period{width:52px!important;min-width:52px!important;max-width:52px!important}
+.tt-asc-card{position:relative!important;width:100%!important;height:34px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;color:#111827!important;overflow:hidden!important}
+.tt-asc-card .tt-asc-subject{position:absolute!important;inset:0!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:1px 2px 5px!important;color:#111827!important;font-size:9px!important;font-weight:800!important;line-height:1!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;opacity:1!important;visibility:visible!important}
+.tt-asc-card.locked .tt-asc-subject{background:#fef3c7!important}
+.tt-asc-card small{position:absolute!important;right:1px!important;bottom:0!important;z-index:5!important;font-size:6px!important;line-height:1!important}
+.tt-asc-section{height:34px!important}
+
+
+/* 2026-09-29 filter-row actions + edge-to-edge timetable cards */
+.tt-workspace-toolbar{min-height:50px!important}
+.tt-workspace-filters{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex-wrap:nowrap!important}
+.tt-workspace-filter-controls{display:flex;align-items:center;gap:7px;min-width:0;flex-wrap:wrap}
+.tt-workspace-filters .tt-workspace-actions{margin-left:auto;flex-shrink:0}
+.tt-asc-cell{position:relative!important;padding:0!important;background:#fff!important;vertical-align:top!important;overflow:hidden!important}
+.tt-asc-card{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-width:100%!important;max-width:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;background:#fff!important;box-shadow:none!important}
+.tt-asc-card .tt-asc-subject{width:100%!important;max-width:100%!important;margin:0!important;padding:0 1px!important;box-sizing:border-box!important;text-align:center!important;color:#0f172a!important;font-size:9px!important;font-weight:800!important;line-height:32px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.tt-asc-card small{position:absolute!important;right:0!important;bottom:0!important;line-height:7px!important;margin:0!important;padding:0!important}
+@media(max-width:1050px){.tt-workspace-filters{align-items:flex-start!important;flex-wrap:wrap!important}.tt-workspace-filters .tt-workspace-actions{margin-left:0}}
