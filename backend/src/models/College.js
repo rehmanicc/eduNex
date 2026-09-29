@@ -23,6 +23,7 @@ const schema = new mongoose.Schema({
   contactNo: { type: String, trim: true },
   email: { type: String, trim: true, lowercase: true },
   website: { type: String, trim: true },
+  educationalSlogan: { type: String, trim: true, maxlength: 120 },
 
   logoUrl: String,
   bannerUrl: String,

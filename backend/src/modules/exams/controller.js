@@ -10,6 +10,8 @@ const Section = require('../../models/Section');
 const Course = require('../../models/Course');
 const AcademicSession = require('../../models/AcademicSession');
 const TeacherAssignment = require('../../models/TeacherAssignment');
+const Attendance = require('../../models/Attendance');
+const College = require('../../models/College');
 const { audit } = require('../../services/auditService');
 const scope = require('../../services/dataScopeService');
 const { toId } = require('../../utils/normalize');
@@ -278,10 +280,56 @@ async function listResults(req,res){
   const docs=await ExamResult.find(q).populate('examId','name status publishedAt academicSessionId').populate('studentId','name fatherName admissionNo registrationNo rollNo programId sectionId academicSessionId').populate('sectionId','name').populate('courseId','name code creditHours periodNumber').sort({studentId:1,courseId:1});res.json(docs);
 }
 async function resultCard(req,res){
-  const cid=collegeId(req),studentId=req.params.studentId;if(scope.isStudentUser(req.user)&&toId(studentId)!==toId(req.user.linkedStudentId))return bad(res,'Access denied',403);const student=await Student.findOne({_id:studentId,collegeId:cid}).populate('programId sectionId academicSessionId').lean();if(!student)return bad(res,'Student not found',404);const exam=await Exam.findOne({_id:req.params.examId,collegeId:cid}).populate('academicSessionId examTypeId gradingSchemeId').lean();if(!exam)return bad(res,'Exam not found',404);if(scope.isStudentUser(req.user)&&exam.status!=='published')return bad(res,'Result not published',403);
+  const cid=collegeId(req),studentId=req.params.studentId;
+  if(scope.isStudentUser(req.user)&&toId(studentId)!==toId(req.user.linkedStudentId))return bad(res,'Access denied',403);
+  const [student,exam,college]=await Promise.all([
+    Student.findOne({_id:studentId,collegeId:cid}).populate('programId sectionId academicSessionId').lean(),
+    Exam.findOne({_id:req.params.examId,collegeId:cid}).populate('academicSessionId examTypeId gradingSchemeId').lean(),
+    College.findById(cid).select('name code address contactNo email website logoUrl educationalSlogan').lean()
+  ]);
+  if(!student)return bad(res,'Student not found',404);
+  if(!exam)return bad(res,'Exam not found',404);
+  if(scope.isStudentUser(req.user)&&exam.status!=='published')return bad(res,'Result not published',403);
   const resultQ={collegeId:cid,examId:exam._id,studentId};
-  if(scope.isTeacherUser(req.user)){const assignments=await scope.teacherAssignments(req.user,cid);const own=assignments.filter(a=>toId(a.sectionId)===toId(student.sectionId));if(!own.length)return bad(res,'This student is not in one of your assigned classes',403);resultQ.$or=teacherResultPairs(own);}
-  const results=await ExamResult.find(resultQ).populate('courseId','name code creditHours periodNumber').lean();const counted=results.filter(r=>!['withheld'].includes(r.resultStatus)),total=counted.reduce((s,r)=>s+Number(r.totalMarks||0),0),obtained=counted.reduce((s,r)=>s+Number(r.marksObtained||0),0),credits=counted.reduce((s,r)=>s+Number(r.courseId?.creditHours||0),0),quality=counted.reduce((s,r)=>s+Number(r.gradePoint||0)*Number(r.courseId?.creditHours||0),0),percentage=total?Number((obtained/total*100).toFixed(2)):0,gpa=credits?Number((quality/credits).toFixed(2)):0,failed=counted.some(r=>['fail','absent'].includes(r.resultStatus));res.json({student,exam,results,summary:{totalMarks:total,obtainedMarks:obtained,percentage,gpa,overallStatus:failed?'FAIL':'PASS'}});
+  if(scope.isTeacherUser(req.user)){
+    const assignments=await scope.teacherAssignments(req.user,cid);
+    const own=assignments.filter(a=>toId(a.sectionId)===toId(student.sectionId));
+    if(!own.length)return bad(res,'This student is not in one of your assigned classes',403);
+    resultQ.$or=teacherResultPairs(own);
+  }
+  const results=await ExamResult.find(resultQ).populate('courseId','name code creditHours periodNumber').lean();
+  const counted=results.filter(r=>!['withheld'].includes(r.resultStatus));
+  const total=counted.reduce((sum,r)=>sum+Number(r.totalMarks||0),0);
+  const obtained=counted.reduce((sum,r)=>sum+Number(r.marksObtained||0),0);
+  const credits=counted.reduce((sum,r)=>sum+Number(r.courseId?.creditHours||0),0);
+  const quality=counted.reduce((sum,r)=>sum+Number(r.gradePoint||0)*Number(r.courseId?.creditHours||0),0);
+  const percentage=total?Number((obtained/total*100).toFixed(2)):0;
+  const gpa=credits?Number((quality/credits).toFixed(2)):0;
+  const failed=counted.some(r=>['fail','absent'].includes(r.resultStatus));
+  const gradeBands=exam.gradingSchemeId?.bands||[];
+  const overallGrade=(gradeBands.find(b=>percentage>=Number(b.minPercentage||0)&&percentage<=Number(b.maxPercentage||100))||{}).grade||'';
+
+  const previousExams=await Exam.find({collegeId:cid,academicSessionId:exam.academicSessionId?._id||exam.academicSessionId,_id:{$ne:exam._id},status:{$in:['published','closed']},startDate:{$lte:exam.startDate}}).sort({startDate:1}).lean();
+  const previousResults=previousExams.length?await ExamResult.find({collegeId:cid,studentId,examId:{$in:previousExams.map(x=>x._id)},publishedAt:{$ne:null}}).lean():[];
+  const previousExamResults=previousExams.map(e=>{
+    const rows=previousResults.filter(r=>toId(r.examId)===toId(e._id)&&r.resultStatus!=='withheld');
+    const max=rows.reduce((sum,r)=>sum+Number(r.totalMarks||0),0),got=rows.reduce((sum,r)=>sum+Number(r.marksObtained||0),0);
+    const pct=max?Number((got/max*100).toFixed(2)):0;
+    return {examId:e._id,name:e.name,obtainedMarks:got,totalMarks:max,percentage:pct};
+  }).filter(x=>x.totalMarks>0);
+
+  const attendanceRows=await Attendance.aggregate([
+    {$match:{collegeId:new Attendance.db.base.Types.ObjectId(String(cid)),studentId:new Attendance.db.base.Types.ObjectId(String(studentId)),academicSessionId:student.academicSessionId?._id||student.academicSessionId}},
+    {$group:{_id:{$dateToString:{format:'%Y-%m-%d',date:'$attendanceDate'}},statuses:{$addToSet:'$status'}}}
+  ]);
+  const attendance={totalWorkingDays:attendanceRows.length,daysPresent:0,daysAbsent:0};
+  for(const day of attendanceRows){
+    if((day.statuses||[]).some(x=>['present','late','leave','short_leave','excused'].includes(x)))attendance.daysPresent+=1;
+    else attendance.daysAbsent+=1;
+  }
+  attendance.percentage=attendance.totalWorkingDays?Number((attendance.daysPresent/attendance.totalWorkingDays*100).toFixed(1)):0;
+  const remarks=(results.map(r=>clean(r.remarks)).filter(Boolean).join(' • '))||'';
+  res.json({college,student,exam,results,previousExamResults,attendance,remarks,summary:{totalMarks:total,obtainedMarks:obtained,percentage,gpa,overallGrade,overallStatus:failed?'FAIL':'PASS'}});
 }
 async function transcript(req,res){const cid=collegeId(req),studentId=req.params.studentId;if(scope.isStudentUser(req.user)&&toId(studentId)!==toId(req.user.linkedStudentId))return bad(res,'Access denied',403);const student=await Student.findOne({_id:studentId,collegeId:cid}).populate('programId').lean();if(!student)return bad(res,'Student not found',404);const q={collegeId:cid,studentId,publishedAt:{$ne:null}};if(scope.isTeacherUser(req.user)){const assignments=await scope.teacherAssignments(req.user,cid);const own=assignments.filter(a=>toId(a.sectionId)===toId(student.sectionId));if(!own.length)return bad(res,'This student is not in one of your assigned classes',403);q.$or=teacherResultPairs(own);}const results=await ExamResult.find(q).populate('examId','name academicSessionId publishedAt').populate('courseId','name code creditHours periodNumber').lean();const grouped={};for(const r of results){const key=toId(r.examId?._id);if(!grouped[key])grouped[key]={exam:r.examId,results:[]};grouped[key].results.push(r);}res.json({student,exams:Object.values(grouped)});}
 
