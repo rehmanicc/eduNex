@@ -59,6 +59,10 @@ exports.notifications = async (req,res) => {
   const rows=await Notification.find(req.tenantFilter({userId:req.user._id})).sort({createdAt:-1}).limit(100).lean();
   res.json({notifications:rows.map(n=>({id:n._id,type:n.type,title:n.title,message:n.message,entityType:n.entityType||'',entityId:n.entityId||null,isRead:Boolean(n.isRead),readAt:n.readAt||null,createdAt:n.createdAt})),unreadCount:rows.filter(n=>!n.isRead).length});
 };
+exports.notificationUnreadCount = async (req,res) => {
+  const unreadCount=await Notification.countDocuments(req.tenantFilter({userId:req.user._id,isRead:false}));
+  res.json({unreadCount});
+};
 exports.markNotificationRead = async (req,res) => {
   const row=await Notification.findOneAndUpdate(req.tenantFilter({_id:req.params.id,userId:req.user._id}),{$set:{isRead:true,readAt:new Date()}},{new:true}).lean();
   if(!row)return res.status(404).json({error:'Notification not found'});

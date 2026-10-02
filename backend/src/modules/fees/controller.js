@@ -52,7 +52,7 @@ async function resolveCollegePaymentMethod(collegeId, requested) {
 
 const snapshot=row=>({feePackageId:row._id,name:row.name,programId:row.programId,academicSessionId:row.academicSessionId,feeHeads:(row.feeHeads||[]).map(h=>({name:h.name,code:h.code,amount:h.amount})),totalAmount:row.totalAmount,version:row.version});
 
-async function recalc(plan){const payments=await FeePayment.find({studentFeePlanId:plan._id,isReversed:false});plan.totalPaid=payments.reduce((s,p)=>s+Number(p.amount||0),0);for(const i of plan.installments)i.paidAmount=0;for(const p of payments){if(!p.installmentId)continue;const i=plan.installments.id(p.installmentId);if(i)i.paidAmount+=Number(p.amount||0);}await plan.save();}
+async function recalc(plan){const payments=await FeePayment.find({collegeId:plan.collegeId,studentFeePlanId:plan._id,isReversed:false}).select('amount installmentId').lean();plan.totalPaid=payments.reduce((s,p)=>s+Number(p.amount||0),0);for(const i of plan.installments)i.paidAmount=0;for(const p of payments){if(!p.installmentId)continue;const i=plan.installments.id(p.installmentId);if(i)i.paidAmount+=Number(p.amount||0);}await plan.save();}
 
 async function ensureRollNo(req,admission){
   if(admission.rollNo)return admission.rollNo;
@@ -830,7 +830,7 @@ async function openPostingLines(planId, collegeId, excludePostingId, asOfDate) {
   const q = { collegeId, studentFeePlanId: planId, status: { $ne: 'cancelled' } };
   if (excludePostingId) q._id = { $ne: excludePostingId };
   if (asOfDate) q.$or = [{ dueDate: { $exists: false } }, { dueDate: null }, { dueDate: { $lte: new Date(asOfDate) } }];
-  const postings = await FeePosting.find(q).sort({ postingDate: 1, createdAt: 1 });
+  const postings = await FeePosting.find(q).select('voucherNo dueDate postingDate lines').sort({ postingDate: 1, createdAt: 1 }).lean();
   const rows = [];
   for (const posting of postings) {
     for (const line of posting.lines || []) {
@@ -855,8 +855,8 @@ async function openPostingLines(planId, collegeId, excludePostingId, asOfDate) {
 
 async function refreshPostingPlan(plan) {
   const [postings, payments] = await Promise.all([
-    FeePosting.find({ collegeId: plan.collegeId, studentFeePlanId: plan._id, status: { $ne: 'cancelled' } }),
-    FeePayment.find({ collegeId: plan.collegeId, studentFeePlanId: plan._id, isReversed: false })
+    FeePosting.find({ collegeId: plan.collegeId, studentFeePlanId: plan._id, status: { $ne: 'cancelled' } }).select('lines').lean(),
+    FeePayment.find({ collegeId: plan.collegeId, studentFeePlanId: plan._id, isReversed: false }).select('amount allocations').lean()
   ]);
   plan.totalPosted = Number(postings.reduce((sum, posting) => sum + (posting.lines || []).reduce((s, line) => s + Number(line.amount || 0), 0), 0).toFixed(2));
   plan.totalPaid = Number(payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0).toFixed(2));

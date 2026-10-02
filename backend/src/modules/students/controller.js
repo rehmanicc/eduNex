@@ -25,6 +25,25 @@ exports.list = async (req, res) => {
   const filter = await listFilter(req);
   if (req.query.sectionId) filter.sectionId = req.query.sectionId;
   if (req.query.programId) filter.programId = req.query.programId;
+  if (req.query.academicSessionId) filter.academicSessionId = req.query.academicSessionId;
+
+  const q = String(req.query.q || '').trim();
+  if (q) {
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const rx = new RegExp(escaped, 'i');
+    const search = { $or: [
+      { name: rx },
+      { fatherName: rx },
+      { admissionNo: rx },
+      { rollNo: rx },
+      { registrationNo: rx },
+      { phone: rx }
+    ] };
+    if (filter.$and) filter.$and.push(search);
+    else if (filter.$or) { const existing = filter.$or; delete filter.$or; filter.$and = [{ $or: existing }, search]; }
+    else Object.assign(filter, search);
+  }
+
   const rows = await executePaged({
     model: Student,
     filter,

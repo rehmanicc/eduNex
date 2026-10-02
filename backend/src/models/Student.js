@@ -130,6 +130,7 @@ schema.index({ collegeId: 1, sectionId: 1, academicSessionId: 1, status: 1 });
 // Optimizes college/program/section student lists and active-student filters.
 schema.index({ collegeId: 1, programId: 1, sectionId: 1, status: 1, name: 1 });
 schema.index({ collegeId: 1, academicSessionId: 1, programId: 1, status: 1 });
+schema.index({ collegeId: 1, academicSessionId: 1, programId: 1, sectionId: 1, name: 1 });
 
 module.exports =
   mongoose.model('Student', schema);

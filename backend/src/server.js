@@ -9,6 +9,7 @@ const morgan = require('morgan');
 const connectDB = require('./config/db');
 const routes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
+const slowRequestLogger = require('./middleware/slowRequestLogger');
 
 if (!process.env.MONGO_URI || !process.env.JWT_SECRET) {
   console.error('MONGO_URI and JWT_SECRET are required');
@@ -33,6 +34,8 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static(path.join(process.cwd(), 'uploads')));
 
+// Log only genuinely slow API requests; threshold is configurable with SLOW_REQUEST_MS.
+app.use('/api', slowRequestLogger);
 app.use('/api/system', require('./modules/system/routes'));
 app.use('/api', apiLimiter);
 app.use(morgan('dev'));

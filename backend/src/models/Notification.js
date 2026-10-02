@@ -11,4 +11,6 @@ const schema=new mongoose.Schema({
   readAt:Date
 },{timestamps:true});
 schema.index({collegeId:1,userId:1,createdAt:-1});
+// Fast unread badge/count lookups without scanning a user's notification history.
+schema.index({collegeId:1,userId:1,isRead:1,createdAt:-1});
 module.exports=mongoose.model('Notification',schema);

@@ -22,4 +22,7 @@ const schema=new mongoose.Schema({
 schema.index({collegeId:1,scheduleId:1,studentId:1},{unique:true});
 // Supports compile/verification counts without scanning unrelated exam results.
 schema.index({collegeId:1,scheduleId:1,resultStatus:1});
+// Student result cards/corrections and portal history are exam/student heavy read paths.
+schema.index({collegeId:1,examId:1,studentId:1,courseId:1});
+schema.index({collegeId:1,studentId:1,publishedAt:-1});
 module.exports=mongoose.model('ExamResult',schema);

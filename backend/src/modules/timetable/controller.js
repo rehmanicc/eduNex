@@ -190,6 +190,38 @@ function hasConflict(rows,{teacherId,sectionId,divisionId,room,day,start,end}){
  });
 }
 
+// Generation hot-path index. Candidate scoring can run thousands of times;
+// keeping day/count buckets avoids repeatedly scanning the complete timetable.
+function buildWorkingIndex(rows){
+ const index={teacherDay:new Map(),sectionDay:new Map(),subjectDay:new Map(),teacherDayRows:new Map(),dayRows:new Map()};
+ const add=row=>{
+   const day=Number(row.dayOfWeek),teacher=id(row.teacherId),section=id(row.sectionId),course=id(row.courseId);
+   const tk=`${teacher}:${day}`,sk=`${section}:${day}`,ck=`${section}:${course}:${day}`;
+   index.teacherDay.set(tk,(index.teacherDay.get(tk)||0)+1);
+   index.sectionDay.set(sk,(index.sectionDay.get(sk)||0)+1);
+   index.subjectDay.set(ck,(index.subjectDay.get(ck)||0)+1);
+   if(!index.teacherDayRows.has(tk))index.teacherDayRows.set(tk,[]);index.teacherDayRows.get(tk).push(row);
+   if(!index.dayRows.has(day))index.dayRows.set(day,[]);index.dayRows.get(day).push(row);
+ };
+ for(const row of rows)add(row);
+ index.add=add;
+ return index;
+}
+function indexedCount(map,key){return Number(map.get(key)||0);}
+function indexedConsecutive(index,teacherId,day,start,end,maxConsecutive){
+ const list=(index.teacherDayRows.get(`${id(teacherId)}:${Number(day)}`)||[]).map(r=>({start:Number(r.startMinutes),end:Number(r.endMinutes)}));
+ list.push({start:Number(start),end:Number(end)});list.sort((a,b)=>a.start-b.start);
+ let chain=1,best=1;for(let i=1;i<list.length;i++){const gap=list[i].start-list[i-1].end;if(gap>=0&&gap<=5)chain++;else chain=1;best=Math.max(best,chain);}return best>maxConsecutive;
+}
+function indexedConflict(index,{teacherId,sectionId,divisionId,room,day,start,end}){
+ return (index.dayRows.get(Number(day))||[]).some(r=>{
+   if(!overlap(start,end,Number(r.startMinutes),Number(r.endMinutes)))return false;
+   if(id(r.teacherId)===id(teacherId))return true;
+   if(id(r.sectionId)===id(sectionId)){const existingDivision=id(r.divisionId),incomingDivision=id(divisionId);if(!existingDivision||!incomingDivision||existingDivision===incomingDivision)return true;}
+   return Boolean(room&&r.room&&String(r.room).toLowerCase()===String(room).toLowerCase());
+ });
+}
+
 async function candidateSlotsForSection(collegeId,sectionId,lessonSpan=1){
  const resolved=await resolveScheduleProfile(collegeId,sectionId);
  const settings=resolved.settings||{};
@@ -495,6 +527,7 @@ exports.generatePreview=async(req,res)=>{
 
  async function solve(baseRows,existingCounts,attempt=0){
    const working=[...baseRows],draft=[],unallocated=[];
+   const workingIndex=buildWorkingIndex(working);
    let preferenceHits=0,preferenceMisses=0;
    for(const a of jobs){
      const required=Number(a.weeklyPeriods||1),already=Number(existingCounts.get(id(a._id))||0),wanted=Math.max(0,required-already);
@@ -511,17 +544,17 @@ exports.generatePreview=async(req,res)=>{
          const reasons=[];
          if(intervalConstraintBlocked(teacherConstraints,c.day,c.start,c.end))reasons.push('Teacher unavailable');
          if(intervalConstraintBlocked(classConstraints,c.day,c.start,c.end)||relativeClassBlocked(classConstraints,c))reasons.push('Class/section unavailable');
-         if(countTeacherDay(working,a.teacherId,c.day)>=teacherDailyMax)reasons.push('Teacher daily limit');
-         const classMax=teacherMaxDaily(classConstraints,20);if(working.filter(r=>id(r.sectionId)===id(a.sectionId)&&Number(r.dayOfWeek)===c.day).length>=classMax)reasons.push('Class daily limit');
-         if(countSubjectDay(working,a.sectionId,a.courseId,c.day)>=subjectDailyMax)reasons.push('Subject daily limit');
-         if(wouldExceedConsecutive(working,a.teacherId,c.day,c.start,c.end,teacherConsecutiveMax))reasons.push('Teacher consecutive-period limit');
-         if(hasConflict(working,{teacherId:a.teacherId,sectionId:a.sectionId,divisionId:a.divisionId,room:a.preferredRoom||'',day:c.day,start:c.start,end:c.end}))reasons.push('Teacher/section/room conflict');
+         if(indexedCount(workingIndex.teacherDay,`${id(a.teacherId)}:${c.day}`)>=teacherDailyMax)reasons.push('Teacher daily limit');
+         const classMax=teacherMaxDaily(classConstraints,20);if(indexedCount(workingIndex.sectionDay,`${id(a.sectionId)}:${c.day}`)>=classMax)reasons.push('Class daily limit');
+         if(indexedCount(workingIndex.subjectDay,`${id(a.sectionId)}:${id(a.courseId)}:${c.day}`)>=subjectDailyMax)reasons.push('Subject daily limit');
+         if(indexedConsecutive(workingIndex,a.teacherId,c.day,c.start,c.end,teacherConsecutiveMax))reasons.push('Teacher consecutive-period limit');
+         if(indexedConflict(workingIndex,{teacherId:a.teacherId,sectionId:a.sectionId,divisionId:a.divisionId,room:a.preferredRoom||'',day:c.day,start:c.start,end:c.end}))reasons.push('Teacher/section/room conflict');
          return{c,reasons};
        });
        const feasible=checked.filter(x=>!x.reasons.length).map(({c})=>{
-         const teacherDay=countTeacherDay(working,a.teacherId,c.day),sectionDay=working.filter(r=>id(r.sectionId)===id(a.sectionId)&&Number(r.dayOfWeek)===c.day).length,sameSubjectDay=countSubjectDay(working,a.sectionId,a.courseId,c.day);
+         const teacherDay=indexedCount(workingIndex.teacherDay,`${id(a.teacherId)}:${c.day}`),sectionDay=indexedCount(workingIndex.sectionDay,`${id(a.sectionId)}:${c.day}`),sameSubjectDay=indexedCount(workingIndex.subjectDay,`${id(a.sectionId)}:${id(a.courseId)}:${c.day}`);
          const preferred=preferredScore(teacherConstraints,c.day,c.start,c.end);let score=preferred-(teacherDay*2)-(sectionDay*1.25)-(a.spreadAcrossWeek!==false?sameSubjectDay*5:sameSubjectDay);
-         const sameDayTeacher=working.filter(r=>id(r.teacherId)===id(a.teacherId)&&Number(r.dayOfWeek)===c.day).sort((x,y)=>x.startMinutes-y.startMinutes);
+         const sameDayTeacher=[...(workingIndex.teacherDayRows.get(`${id(a.teacherId)}:${c.day}`)||[])].sort((x,y)=>x.startMinutes-y.startMinutes);
          if(sameDayTeacher.length){const nearest=Math.min(...sameDayTeacher.map(r=>Math.min(Math.abs(c.start-Number(r.endMinutes)),Math.abs(Number(r.startMinutes)-c.end))));if(nearest===0)score+=3;else if(nearest>60)score-=2;}
          const teachingSlots=(c.profile?.scheduleSlots||[]).filter(s=>!s.isBreak),firstStart=teachingSlots.length?minutes(teachingSlots[0].startTime):null,lastEnd=teachingSlots.length?minutes(teachingSlots[teachingSlots.length-1].endTime):null;
          if(teacherConstraints.some(x=>x.type==='avoid_first')&&firstStart!==null&&c.start===firstStart)score-=5;
@@ -538,7 +571,7 @@ exports.generatePreview=async(req,res)=>{
        if(!feasible.length){lastReasons={};for(const x of checked)for(const r of x.reasons)lastReasons[r]=(lastReasons[r]||0)+1;break;}
        const c=feasible[0];if(c.preferred)preferenceHits++;else if(teacherConstraints.some(x=>x.type==='preferred'))preferenceMisses++;
        const row={collegeId,academicSessionId,teacherAssignmentId:a._id,sectionId:a.sectionId._id||a.sectionId,courseId:a.courseId._id||a.courseId,teacherId:a.teacherId._id||a.teacherId,dayOfWeek:c.day,startMinutes:c.start,endMinutes:c.end,room:a.preferredRoom||'',divisionId:a.divisionId?._id||a.divisionId||null,generationStatus:'draft',isLocked:false,source:'generated'};
-       working.push(row);draft.push({...row,sectionName:a.sectionId?.name||'',programName:a.programId?.name||'',courseName:a.courseId?.name||'',teacherName:a.teacherId?.name||''});placed++;
+       working.push(row);workingIndex.add(row);draft.push({...row,sectionName:a.sectionId?.name||'',programName:a.programId?.name||'',courseName:a.courseId?.name||'',teacherName:a.teacherId?.name||''});placed++;
      }
      if(placed<wanted){const details=Object.entries(lastReasons).sort((a,b)=>b[1]-a[1]).map(([name,count])=>`${name}: ${count} candidate period(s) blocked`);unallocated.push({assignmentId:a._id,course:a.courseId?.name,teacher:a.teacherId?.name,section:a.sectionId?.name,remaining:wanted-placed,reason:details[0]||'No conflict-free period satisfies the current hard constraints',details});}
    }

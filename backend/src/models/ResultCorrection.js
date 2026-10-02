@@ -18,4 +18,6 @@ const schema=new mongoose.Schema({
   changedAt:{type:Date,default:Date.now,index:true}
 },{timestamps:true});
 schema.index({collegeId:1,examId:1,studentId:1,revision:1});
+schema.index({collegeId:1,examId:1,changedAt:-1});
+schema.index({collegeId:1,sectionId:1,courseId:1,reason:1,changedAt:-1});
 module.exports=mongoose.model('ResultCorrection',schema);

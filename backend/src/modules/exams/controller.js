@@ -87,6 +87,15 @@ async function notifyStudent(cid,studentId,title,body,data={}){
   if(users.length)await Notification.insertMany(users.map(u=>({collegeId:cid,userId:u._id,type:'result',title,message:body,entityType:'Student',entityId:studentId})),{ordered:false}).catch(()=>{});
   pushNotifications.sendToStudentIds(cid,[studentId],{title,body,data}).catch(err=>console.error('result_push_error',err.message));
 }
+async function notifyStudents(cid,studentIds,title,body,data={}){
+  const uniqueIds=[...new Map((studentIds||[]).filter(Boolean).map(value=>[String(value),value])).values()];
+  if(!uniqueIds.length)return;
+  const users=await User.find({collegeId:cid,linkedStudentId:{$in:uniqueIds},isActive:true}).select('_id linkedStudentId').lean();
+  if(users.length){
+    await Notification.insertMany(users.map(u=>({collegeId:cid,userId:u._id,type:'result',title,message:body,entityType:'Student',entityId:u.linkedStudentId})),{ordered:false}).catch(err=>console.error('result_notification_insert_error',err.message));
+  }
+  pushNotifications.sendToStudentIds(cid,uniqueIds,{title,body,data}).catch(err=>console.error('result_push_error',err.message));
+}
 
 async function listExamTypes(req,res){ res.json(await ExamType.find({collegeId:collegeId(req)}).sort({isActive:-1,name:1})); }
 async function createExamType(req,res){
@@ -302,7 +311,7 @@ async function publishResults(req,res){
   await ExamSchedule.updateMany({collegeId:cid,examId:exam._id},{$set:{isPublished:true}});
   exam.status='published';exam.publishedAt=now;exam.publishedBy=req.user._id;await exam.save();
   await audit(req,'PUBLISH_EXAM_RESULTS','Exam',exam._id,{students:studentIds.length});
-  for(const studentId of studentIds)await notifyStudent(cid,studentId,'Result Published',`${exam.name} result has been published.`,{type:'result_published',examId:String(exam._id)});
+  await notifyStudents(cid,studentIds,'Result Published',`${exam.name} result has been published.`,{type:'result_published',examId:String(exam._id)});
   res.json({message:'Results published',exam});
 }
 

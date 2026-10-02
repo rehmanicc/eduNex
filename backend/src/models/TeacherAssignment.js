@@ -89,4 +89,7 @@ schema.index(
   { unique: true }
 );
 
+// Teacher portal repeatedly resolves active assignments by tenant + teacher.
+schema.index({ collegeId: 1, teacherId: 1, isActive: 1, academicSessionId: 1 });
+
 module.exports = mongoose.model('TeacherAssignment', schema);
