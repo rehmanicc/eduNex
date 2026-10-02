@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as XLSX from 'xlsx';
 import api from '../../api/client';
 import AdmissionsModuleNav from './AdmissionsModuleNav';
 import './admissions-modal.css';
@@ -61,7 +60,8 @@ export default function AdmissionsReportsPage(){
     const go=()=>{w.focus();w.print();};const imgs=w.document.images;if(!imgs.length)setTimeout(go,150);else{let done=0;const finish=()=>{done+=1;if(done>=imgs.length)setTimeout(go,100)};Array.from(imgs).forEach(img=>{if(img.complete)finish();else{img.onload=finish;img.onerror=finish;}});setTimeout(go,1000);}
   }
 
-  function exportExcel(){
+  async function exportExcel(){
+    const XLSX=await import('xlsx');
     if(!generated)return;
     if(type==='staff_references'){
       const wb=XLSX.utils.book_new();

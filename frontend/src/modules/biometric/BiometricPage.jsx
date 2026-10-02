@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import api from '../../api/client';
-import * as XLSX from 'xlsx';
 import './biometric.css';
 
 const VENDORS=[
@@ -121,7 +120,7 @@ export default function Biometric(){
   async function readFile(file){
     feedback();if(!file)return;
     try{
-      const buffer=await file.arrayBuffer();
+      const [buffer,XLSX]=await Promise.all([file.arrayBuffer(),import('xlsx')]);
       const wb=XLSX.read(buffer,{type:'array',cellDates:true});
       const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
       const rows=normalizeRows(raw);

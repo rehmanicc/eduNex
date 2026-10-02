@@ -191,3 +191,6 @@
 @media(max-width:1000px){.correction-kpis{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:640px){.correction-kpis{grid-template-columns:repeat(2,1fr)}}
 @media print{body.result-card-print-window .result-card-revision{font-size:9px!important}}
+
+/* Performance patch 3: paginated correction history keeps large audit logs responsive. */
+.correction-pagination{align-items:center;justify-content:flex-end;gap:10px}.correction-pagination span{font-size:12px;color:#6d7b87}.correction-pagination button:disabled{opacity:.5;cursor:not-allowed}
