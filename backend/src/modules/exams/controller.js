@@ -4,6 +4,9 @@ const ExamType = require('../../models/ExamType');
 const GradingScheme = require('../../models/GradingScheme');
 const ExamSchedule = require('../../models/ExamSchedule');
 const ExamResult = require('../../models/ExamResult');
+const ResultCorrection = require('../../models/ResultCorrection');
+const Notification = require('../../models/Notification');
+const User = require('../../models/User');
 const Student = require('../../models/Student');
 const Program = require('../../models/Program');
 const Section = require('../../models/Section');
@@ -67,6 +70,22 @@ async function activeStudentsForSchedule(cid,schedule){
     academicSessionId:schedule.academicSessionId,
     status:'active'
   }).select('_id admissionNo registrationNo rollNo name fatherName').sort({rollNo:1,name:1}).lean();
+}
+
+const CORRECTION_REASONS=['Data Entry Error','Marks Calculation','Unchecked Questions','Incorrect Checking'];
+function overallFromRows(rows,scheme){
+  const counted=rows.filter(r=>r.resultStatus!=='withheld');
+  const totalMarks=counted.reduce((sum,r)=>sum+Number(r.totalMarks||0),0);
+  const obtainedMarks=counted.reduce((sum,r)=>sum+Number(r.marksObtained||0),0);
+  const percentage=totalMarks?Number((obtainedMarks/totalMarks*100).toFixed(2)):0;
+  const grade=applyGrade(scheme,percentage).grade||'';
+  const status=counted.some(r=>['fail','absent'].includes(r.resultStatus))?'FAIL':'PASS';
+  return {totalMarks,obtainedMarks,percentage,grade,status};
+}
+async function notifyStudent(cid,studentId,title,body,data={}){
+  const users=await User.find({collegeId:cid,linkedStudentId:studentId,isActive:true}).select('_id').lean();
+  if(users.length)await Notification.insertMany(users.map(u=>({collegeId:cid,userId:u._id,type:'result',title,message:body,entityType:'Student',entityId:studentId})),{ordered:false}).catch(()=>{});
+  pushNotifications.sendToStudentIds(cid,[studentId],{title,body,data}).catch(err=>console.error('result_push_error',err.message));
 }
 
 async function listExamTypes(req,res){ res.json(await ExamType.find({collegeId:collegeId(req)}).sort({isActive:-1,name:1})); }
@@ -272,7 +291,20 @@ async function compileExam(req,res){
   }
   if(incomplete.length)return bad(res,'All papers must have complete and verified marks before compilation',409,{incomplete});exam.status='compiled';await exam.save();await audit(req,'COMPILE_EXAM_RESULTS','Exam',exam._id);res.json({message:'Results compiled',exam});
 }
-async function publishResults(req,res){const cid=collegeId(req),exam=await Exam.findOne({_id:req.params.examId,collegeId:cid});if(!exam)return bad(res,'Exam not found',404);if(exam.status!=='compiled')return bad(res,'Compile results before publication',409);const now=new Date();await ExamResult.updateMany({collegeId:cid,examId:exam._id},{$set:{publishedAt:now}});await ExamSchedule.updateMany({collegeId:cid,examId:exam._id},{$set:{isPublished:true}});exam.status='published';exam.publishedAt=now;exam.publishedBy=req.user._id;await exam.save();await audit(req,'PUBLISH_EXAM_RESULTS','Exam',exam._id);res.json({message:'Results published',exam});}
+async function publishResults(req,res){
+  const cid=collegeId(req),exam=await Exam.findOne({_id:req.params.examId,collegeId:cid});
+  if(!exam)return bad(res,'Exam not found',404);
+  if(exam.status!=='compiled')return bad(res,'Compile results before publication',409);
+  if(clean(req.body?.confirmation).toUpperCase()!=='PUBLISH')return bad(res,'Publication verification failed. Type PUBLISH to confirm.',400);
+  const now=new Date();
+  const studentIds=await ExamResult.distinct('studentId',{collegeId:cid,examId:exam._id});
+  await ExamResult.updateMany({collegeId:cid,examId:exam._id},{$set:{publishedAt:now}});
+  await ExamSchedule.updateMany({collegeId:cid,examId:exam._id},{$set:{isPublished:true}});
+  exam.status='published';exam.publishedAt=now;exam.publishedBy=req.user._id;await exam.save();
+  await audit(req,'PUBLISH_EXAM_RESULTS','Exam',exam._id,{students:studentIds.length});
+  for(const studentId of studentIds)await notifyStudent(cid,studentId,'Result Published',`${exam.name} result has been published.`,{type:'result_published',examId:String(exam._id)});
+  res.json({message:'Results published',exam});
+}
 
 async function listResults(req,res){
   const cid=collegeId(req),q={collegeId:cid};if(req.query.examId)q.examId=req.query.examId;if(req.query.studentId)q.studentId=req.query.studentId;if(req.query.sectionId)q.sectionId=req.query.sectionId;
@@ -290,6 +322,7 @@ async function resultCard(req,res){
   if(!student)return bad(res,'Student not found',404);
   if(!exam)return bad(res,'Exam not found',404);
   if(scope.isStudentUser(req.user)&&exam.status!=='published')return bad(res,'Result not published',403);
+  if(!scope.isStudentUser(req.user)&&!scope.isTeacherUser(req.user)&&!['compiled','published','closed'].includes(exam.status))return bad(res,'Compile results before opening Result Cards',409);
   const resultQ={collegeId:cid,examId:exam._id,studentId};
   if(scope.isTeacherUser(req.user)){
     const assignments=await scope.teacherAssignments(req.user,cid);
@@ -329,8 +362,39 @@ async function resultCard(req,res){
   }
   attendance.percentage=attendance.totalWorkingDays?Number((attendance.daysPresent/attendance.totalWorkingDays*100).toFixed(1)):0;
   const remarks=(results.map(r=>clean(r.remarks)).filter(Boolean).join(' • '))||'';
-  res.json({college,student,exam,results,previousExamResults,attendance,remarks,summary:{totalMarks:total,obtainedMarks:obtained,percentage,gpa,overallGrade,overallStatus:failed?'FAIL':'PASS'}});
+  const revision=await ResultCorrection.countDocuments({collegeId:cid,examId:exam._id,studentId});
+  res.json({college,student,exam,results,previousExamResults,attendance,remarks,revision,summary:{totalMarks:total,obtainedMarks:obtained,percentage,gpa,overallGrade,overallStatus:failed?'FAIL':'PASS'}});
 }
+async function correctPublishedResult(req,res){
+  const cid=collegeId(req),result=await ExamResult.findOne({_id:req.params.resultId,collegeId:cid});
+  if(!result)return bad(res,'Result record not found',404);
+  const exam=await Exam.findOne({_id:result.examId,collegeId:cid});
+  if(!exam||exam.status!=='published'||!result.publishedAt)return bad(res,'Only currently published results can be corrected',409);
+  const reason=clean(req.body.reason);if(!CORRECTION_REASONS.includes(reason))return bad(res,'Select a valid correction reason');
+  const schedule=await ExamSchedule.findOne({_id:result.scheduleId,collegeId:cid});if(!schedule)return bad(res,'Exam paper not found',404);
+  if(req.body.marksObtained===''||req.body.marksObtained===null||req.body.marksObtained===undefined)return bad(res,'Corrected marks are required');
+  const newMarks=Number(req.body.marksObtained);if(!Number.isFinite(newMarks)||newMarks<0||newMarks>Number(result.totalMarks||schedule.totalMarks))return bad(res,`Marks must be between 0 and ${result.totalMarks||schedule.totalMarks}`);
+  if(Number(result.marksObtained)===newMarks)return bad(res,'Corrected marks are the same as the current marks');
+  const scheme=await getScheme(exam,cid),studentRowsBefore=await ExamResult.find({collegeId:cid,examId:exam._id,studentId:result.studentId}).lean();
+  const oldOverall=overallFromRows(studentRowsBefore,scheme),oldMarks=result.marksObtained,oldPercentage=Number(result.percentage||0),oldGrade=result.grade||'',oldStatus=result.resultStatus||'';
+  const newPercentage=Number(((newMarks/Number(result.totalMarks))*100).toFixed(2)),g=applyGrade(scheme,newPercentage),newStatus=newMarks>=Number(schedule.passingMarks)?'pass':'fail';
+  result.marksObtained=newMarks;result.percentage=newPercentage;result.grade=g.grade;result.gradePoint=g.gradePoint;result.resultStatus=newStatus;result.remarks=g.remarks||result.remarks;result.enteredBy=req.user._id;result.enteredAt=new Date();
+  await result.save();
+  const studentRowsAfter=studentRowsBefore.map(r=>toId(r._id)===toId(result._id)?{...r,marksObtained:newMarks,percentage:newPercentage,grade:g.grade,gradePoint:g.gradePoint,resultStatus:newStatus}:r),newOverall=overallFromRows(studentRowsAfter,scheme);
+  const revision=(await ResultCorrection.countDocuments({collegeId:cid,examId:exam._id,studentId:result.studentId}))+1;
+  const correction=await ResultCorrection.create({collegeId:cid,examId:exam._id,examResultId:result._id,studentId:result.studentId,sectionId:result.sectionId,courseId:result.courseId,revision,reason,oldMarks,newMarks,marksDifference:newMarks-Number(oldMarks||0),oldPercentage,newPercentage,oldGrade,newGrade:g.grade||'',oldStatus,newStatus,oldOverall,newOverall,changedBy:req.user._id,changedAt:new Date()});
+  await audit(req,'CORRECT_PUBLISHED_RESULT','ExamResult',result._id,{correctionId:correction._id,revision,reason,oldMarks,newMarks});
+  await notifyStudent(cid,result.studentId,'Your marks are updated','Your marks are updated',{type:'marks_updated',examId:String(exam._id),studentId:String(result.studentId)});
+  res.json({message:'Published marks updated. Result and reports recalculated automatically.',result,correction});
+}
+async function listResultCorrections(req,res){
+  const cid=collegeId(req),q={collegeId:cid};for(const k of ['examId','studentId','sectionId','courseId','reason'])if(req.query[k])q[k]=req.query[k];
+  if(req.query.from||req.query.to){q.changedAt={};if(req.query.from)q.changedAt.$gte=new Date(req.query.from);if(req.query.to){const d=new Date(req.query.to);d.setHours(23,59,59,999);q.changedAt.$lte=d;}}
+  const rows=await ResultCorrection.find(q).populate('examId','name code').populate('studentId','name rollNo admissionNo programId').populate('sectionId','name').populate('courseId','name code').populate('changedBy','name email').sort({changedAt:-1}).lean();
+  const summary={totalCorrections:rows.length,studentsAffected:new Set(rows.map(x=>toId(x.studentId))).size,subjectsAffected:new Set(rows.map(x=>toId(x.courseId))).size,marksIncreased:rows.filter(x=>x.marksDifference>0).length,marksDecreased:rows.filter(x=>x.marksDifference<0).length,failToPass:rows.filter(x=>x.oldStatus==='fail'&&x.newStatus==='pass').length,passToFail:rows.filter(x=>x.oldStatus==='pass'&&x.newStatus==='fail').length,gradeChanges:rows.filter(x=>x.oldGrade!==x.newGrade).length,reasons:Object.fromEntries(CORRECTION_REASONS.map(reason=>[reason,rows.filter(x=>x.reason===reason).length]))};
+  res.json({reasons:CORRECTION_REASONS,summary,rows});
+}
+
 async function transcript(req,res){const cid=collegeId(req),studentId=req.params.studentId;if(scope.isStudentUser(req.user)&&toId(studentId)!==toId(req.user.linkedStudentId))return bad(res,'Access denied',403);const student=await Student.findOne({_id:studentId,collegeId:cid}).populate('programId').lean();if(!student)return bad(res,'Student not found',404);const q={collegeId:cid,studentId,publishedAt:{$ne:null}};if(scope.isTeacherUser(req.user)){const assignments=await scope.teacherAssignments(req.user,cid);const own=assignments.filter(a=>toId(a.sectionId)===toId(student.sectionId));if(!own.length)return bad(res,'This student is not in one of your assigned classes',403);q.$or=teacherResultPairs(own);}const results=await ExamResult.find(q).populate('examId','name academicSessionId publishedAt').populate('courseId','name code creditHours periodNumber').lean();const grouped={};for(const r of results){const key=toId(r.examId?._id);if(!grouped[key])grouped[key]={exam:r.examId,results:[]};grouped[key].results.push(r);}res.json({student,exams:Object.values(grouped)});}
 
-module.exports={listExamTypes,createExamType,updateExamType,listGradingSchemes,createGradingScheme,updateGradingScheme,listExams,createExam,updateExam,deleteExam,listSchedules,createSchedule,createSchedulesBatch,updateSchedule,deleteSchedule,publishSchedule,publishDateSheet,roster,saveMarks,verifyMarks,reopenMarks,compileExam,publishResults,listResults,resultCard,transcript};
+module.exports={listExamTypes,createExamType,updateExamType,listGradingSchemes,createGradingScheme,updateGradingScheme,listExams,createExam,updateExam,deleteExam,listSchedules,createSchedule,createSchedulesBatch,updateSchedule,deleteSchedule,publishSchedule,publishDateSheet,roster,saveMarks,verifyMarks,reopenMarks,compileExam,publishResults,listResults,resultCard,correctPublishedResult,listResultCorrections,transcript};

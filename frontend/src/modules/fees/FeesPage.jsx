@@ -79,6 +79,7 @@ export default function FeesPage() {
   const manualAdditionalHeads = structureHeads;
   const [structures, setStructures] = useState([]);
   const [programs, setPrograms] = useState([]);
+  const [wings, setWings] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [defaultInstallmentPlans, setDefaultInstallmentPlans] = useState([]);
   const [defaultInstallmentForm, setDefaultInstallmentForm] = useState({ academicSessionId: '', programId: '', installments: [{ title: 'Installment 1', sequence: 1, dueDate: '' }] });
@@ -123,7 +124,7 @@ export default function FeesPage() {
 
   const [showBulkVoucher, setShowBulkVoucher] = useState(false);
   const [bulkVoucher, setBulkVoucher] = useState({
-    academicSessionId: '', programIds: [], dueDate: '', additionalLines: [], voucherType: defaultVoucherType, selectedFeeHeadCodes: []
+    academicSessionId: '', scope: 'college', wingId: '', programIds: [], dueDate: '', additionalLines: [], voucherType: defaultVoucherType, selectedFeeHeadCodes: [], printNote: '', cashPerPage: 3
   });
 
   useEffect(() => {
@@ -145,15 +146,16 @@ export default function FeesPage() {
   async function loadCore() {
     try {
       setError('');
-      const [headRes, structureRes, programRes, sessionRes, defaultRes] = await Promise.all([
+      const [headRes, structureRes, programRes, sessionRes, defaultRes, wingRes] = await Promise.all([
         api.get('/fees/system-heads'), api.get('/fees/structures'),
-        api.get('/academics/programs'), api.get('/academics/sessions'), api.get('/fees/default-installments')
+        api.get('/academics/programs'), api.get('/academics/sessions'), api.get('/fees/default-installments'), api.get('/wings/structure')
       ]);
       setHeads(headRes.data || []);
       setStructures(structureRes.data || []);
       setPrograms(programRes.data || []);
       setSessions(sessionRes.data || []);
       setDefaultInstallmentPlans(defaultRes.data || []);
+      setWings(wingRes.data?.wings || []);
     } catch (e) { setError(getError(e)); }
   }
 
@@ -473,7 +475,25 @@ export default function FeesPage() {
   }
   function setPackageInstallmentCount(value) {
     const count = Math.max(1, Math.min(7, Number(value || 1)));
-    setPackageInstallments(current => Array.from({ length: count }, (_, index) => current[index] || { title: `Installment ${index + 1}`, sequence: index + 1, amount: '', dueDate: '' }).map((x, index) => ({ ...x, sequence: index + 1, title: x.title || `Installment ${index + 1}` })));
+    const tuition = packageLines.find(x => String(x.feeHeadCode).toUpperCase() === 'TUITION');
+    const finalTuition = Math.max(0, Math.round(Number(tuition?.standardAmount || 0) - Number(tuition?.discountAmount || 0)));
+    setPackageInstallments(current => {
+      const next = Array.from({ length: count }, (_, index) => current[index] || { title: `Installment ${index + 1}`, sequence: index + 1, amount: '', dueDate: '' })
+        .map((x, index) => ({ ...x, sequence: index + 1, title: x.title || `Installment ${index + 1}` }));
+      // A changed installment count is a valid student-package edit. Re-split tuition
+      // immediately so the Save button does not remain disabled because newly added
+      // rows have blank amounts. Dates/titles already entered are preserved.
+      if (finalTuition % 10 === 0) {
+        const totalUnits = finalTuition / 10;
+        const baseUnits = Math.floor(totalUnits / count);
+        const remainderUnits = totalUnits - (baseUnits * count);
+        return next.map((item, index) => ({
+          ...item,
+          amount: (baseUnits + (index === count - 1 ? remainderUnits : 0)) * 10
+        }));
+      }
+      return next;
+    });
   }
   function updatePackageInstallment(index, patch) {
     if (Object.prototype.hasOwnProperty.call(patch, 'amount')) {
@@ -663,72 +683,129 @@ export default function FeesPage() {
     const program = admission.programId || {};
     const session = admission.academicSessionId || {};
     const headMap = new Map((data.systemHeads || heads).map(h => [String(h.code).toUpperCase(), h.name]));
-    const newLines = (posting.lines || []).map(line => ({
-      title: headMap.get(String(line.feeHeadCode || '').toUpperCase()) || line.feeHeadCode,
-      detail: line.description || '', amount: Number(line.amount || 0)
-    }));
-    const arrears = Number((posting.arrearsSnapshot || []).reduce((sum, line) => sum + Number(line.outstandingAmount || 0), 0).toFixed(2));
-    const detailedArrears = (posting.arrearsSnapshot || []).map(line => ({
+    const isPartial = String(posting.status || '').toLowerCase() === 'partial';
+    const outstandingAmount = Number(data.outstandingAmount ?? posting.voucherAmount ?? 0);
+    const newLines = isPartial
+      ? [{ title: 'Remaining Balance', detail: `Original voucher amount: ${money(posting.voucherAmount)}`, amount: outstandingAmount }]
+      : (posting.lines || []).map(line => ({
+          title: headMap.get(String(line.feeHeadCode || '').toUpperCase()) || line.feeHeadCode,
+          detail: line.description || '', amount: Number(line.amount || 0)
+        }));
+    const arrears = isPartial ? 0 : Number((posting.arrearsSnapshot || []).reduce((sum, line) => sum + Number(line.outstandingAmount || 0), 0).toFixed(2));
+    const detailedArrears = isPartial ? [] : (posting.arrearsSnapshot || []).map(line => ({
       title: `${headMap.get(String(line.feeHeadCode || '').toUpperCase()) || line.feeHeadCode} Arrear`,
       detail: line.description || '', amount: Number(line.outstandingAmount || 0)
     }));
-    const advanceApplied = Number(posting.advanceApplied || 0);
+    const advanceApplied = isPartial ? 0 : Number(posting.advanceApplied || 0);
+    const payableAmount = isPartial ? outstandingAmount : Number(posting.voucherAmount || 0);
     const collegeName = college?.displayName || college?.name || college?.shortName || 'College / School';
     const collegeContact = [college?.address, college?.phone || college?.phoneNumber, college?.email].filter(Boolean).join(' • ');
     const rawCollegeLogo = college?.logoUrl || college?.logo || '';
     const collegeLogo = rawCollegeLogo ? (() => { try { return new URL(rawCollegeLogo, window.location.origin).href; } catch (_) { return rawCollegeLogo; } })() : '';
-    return { posting, admission, program, session, newLines, arrears, detailedArrears, advanceApplied, collegeName, collegeContact, collegeLogo };
+    return { posting, admission, program, session, newLines, arrears, detailedArrears, advanceApplied, payableAmount, isPartial, collegeName, collegeContact, collegeLogo };
   }
 
-  function bankVoucherHtml(data) {
-    const { posting, admission, program, session, newLines, detailedArrears, advanceApplied, collegeName, collegeContact, collegeLogo } = voucherParts(data);
+  function voucherHeaderHtml(parts, copyLabel, voucherTitle = 'FEE VOUCHER') {
+    const { posting, collegeName, collegeContact, collegeLogo } = parts;
+    return `<header class="voucher-header">
+      ${collegeLogo ? `<img class="voucher-logo" src="${esc(collegeLogo)}" alt="Logo">` : '<div></div>'}
+      <div class="voucher-brand"><h1>${esc(collegeName)}</h1><p>${esc(collegeContact)}</p></div>
+      <div class="voucher-title"><strong>${esc(copyLabel)}</strong><span>${esc(voucherTitle)}</span><small>No: ${esc(posting.voucherNo)}</small></div>
+    </header>`;
+  }
+
+  function voucherRowsHtml(parts) {
+    const { newLines, detailedArrears, advanceApplied } = parts;
     const lines = [...detailedArrears, ...newLines];
-    const rows = lines.map((line, i) => `<tr><td>${i + 1}</td><td><b>${esc(line.title)}</b>${line.detail ? `<small>${esc(line.detail)}</small>` : ''}</td><td class="amt">${money(line.amount)}</td></tr>`).join('') + (advanceApplied > 0 ? `<tr><td></td><td><b>Advance Credit Applied</b></td><td class="amt">-${money(advanceApplied)}</td></tr>` : '');
-    return `<section class="bank-voucher">
-      <header>${collegeLogo ? `<img class="voucher-logo" src="${esc(collegeLogo)}" alt="Logo">` : ''}<div class="bank-brand"><h1>${esc(collegeName)}</h1><p>${esc(collegeContact)}</p><h2>BANK FEE VOUCHER</h2></div><div class="bank-copy">Student / Bank Copy</div></header>
-      <div class="bank-meta"><span><b>Voucher No:</b> ${esc(posting.voucherNo)}</span><span><b>Issue Date:</b> ${voucherDate(posting.postingDate || posting.createdAt)}</span><span class="due-box"><b>Due Date:</b> ${voucherDate(posting.dueDate)}</span><span><b>Batch:</b> ${esc(posting.batchNo || 'Individual')}</span></div>
-      <div class="bank-student"><span><b>Student Name</b>${esc(admission.studentName || '')}</span><span><b>Father Name</b>${esc(admission.fatherName || '')}</span><span><b>Roll / Form No</b>${esc(admission.rollNo || admission.formNo || '')}</span><span><b>Program / Class</b>${esc(program.name || '')}</span><span><b>Academic Session</b>${esc(session.name || '')}</span><span><b>Voucher Status</b>${esc(String(posting.status || 'unpaid').toUpperCase())}</span></div>
-      <table><thead><tr><th>Sr</th><th>Fee Head / Particular</th><th>Amount</th></tr></thead><tbody>${rows || '<tr><td colspan="3">No fee lines</td></tr>'}</tbody><tfoot><tr><td colspan="2">TOTAL</td><td class="amt">${money(posting.voucherAmount)}</td></tr></tfoot></table>
-      <div class="amount-words"><b>Amount in Words:</b> ${esc(amountInWords(posting.voucherAmount))}</div>
-      <div class="bank-note">Please deposit on or before the due date. The student ledger remains the final record of fee liability and payments.</div>
-      <div class="bank-signatures"><span>Depositor Signature</span><span>Bank / Cashier Stamp</span><span>Accounts Office</span></div>
+    let rows = lines.map((line, i) => `<tr><td>${i + 1}</td><td><b>${esc(line.title)}</b>${line.detail ? `<small>${esc(line.detail)}</small>` : ''}</td><td class="amt">${money(line.amount)}</td></tr>`).join('');
+    if (advanceApplied > 0) rows += `<tr><td></td><td><b>Advance Credit Applied</b></td><td class="amt">-${money(advanceApplied)}</td></tr>`;
+    return rows || '<tr><td colspan="3">No fee lines</td></tr>';
+  }
+
+  function voucherIdentityHtml(parts) {
+    const { posting, admission, program, session } = parts;
+    return `<div class="voucher-identity">
+      <span><b>Student Name</b>${esc(admission.studentName || '')}</span>
+      <span><b>Father / Guardian</b>${esc(admission.fatherName || '')}</span>
+      <span><b>Roll / Form No</b>${esc(admission.rollNo || admission.formNo || '')}</span>
+      <span><b>Program / Class</b>${esc(program.name || '')}</span>
+      <span><b>Session</b>${esc(session.name || '')}</span>
+      <span><b>Issue Date</b>${voucherDate(posting.postingDate || posting.createdAt)}</span>
+      <span><b>Due Date</b>${voucherDate(posting.dueDate)}</span>
+      <span><b>Payment Method</b>${String(posting.voucherType || 'bank') === 'cash' ? 'Cash' : 'Bank'}</span>
+    </div>`;
+  }
+
+  function voucherTableHtml(parts) {
+    return `<table class="voucher-table"><thead><tr><th>No.</th><th>Description</th><th>Amount (PKR)</th></tr></thead><tbody>${voucherRowsHtml(parts)}</tbody><tfoot><tr><td></td><td>Total Payable (PKR)</td><td class="amt">${money(parts.payableAmount)}</td></tr></tfoot></table>`;
+  }
+
+  function bankVoucherCopyHtml(data, copyLabel, note = '') {
+    const parts = voucherParts(data);
+    const officeBox = copyLabel === 'COLLEGE COPY'
+      ? '<div class="voucher-office-box"><b>For College Use</b><span>Received: __________________</span><span>Signature: __________________</span></div>'
+      : copyLabel === 'BANK COPY'
+        ? '<div class="voucher-office-box"><b>Bank / Collection Use</b><span>Stamp: _____________________</span><span>Signature: __________________</span></div>'
+        : '<div class="voucher-office-box"><b>Student Record</b><span>Keep this copy as payment reference.</span></div>';
+    return `<section class="bank-voucher-copy ${copyLabel.toLowerCase().replace(/ /g, '-')}">
+      ${voucherHeaderHtml(parts, copyLabel)}
+      ${voucherIdentityHtml(parts)}
+      <div class="voucher-main-grid"><div>${voucherTableHtml(parts)}<div class="voucher-words"><b>Amount in Words:</b> ${esc(amountInWords(parts.payableAmount))}</div></div>${officeBox}</div>
+      ${note ? `<div class="voucher-note"><b>Note:</b> ${esc(note)}</div>` : ''}
+      <div class="voucher-footer"><span>Generated by eduNex</span><span>Voucher: ${esc(parts.posting.voucherNo)}</span></div>
     </section>`;
   }
 
-  function cashVoucherHtml(data) {
-    const { posting, admission, newLines, arrears, advanceApplied, collegeName, collegeLogo } = voucherParts(data);
-    let serial = 1;
-    const rows = newLines.map(line => `<tr><td>${serial++}</td><td>${esc(line.title)}</td><td class="amt">${money(line.amount)}</td></tr>`).join('')
-      + (arrears > 0 ? `<tr><td>${serial++}</td><td>Arrears</td><td class="amt">${money(arrears)}</td></tr>` : '')
-      + (advanceApplied > 0 ? `<tr><td>${serial++}</td><td>Advance Credit Applied</td><td class="amt">-${money(advanceApplied)}</td></tr>` : '');
+  function bankVoucherSheetHtml(data, note = '') {
+    return `<div class="bank-sheet">
+      ${bankVoucherCopyHtml(data, 'BANK COPY', note)}
+      <div class="voucher-cut">✂</div>
+      ${bankVoucherCopyHtml(data, 'COLLEGE COPY', note)}
+      <div class="voucher-cut">✂</div>
+      ${bankVoucherCopyHtml(data, 'STUDENT COPY', note)}
+    </div>`;
+  }
+
+  function cashVoucherHtml(data, note = '') {
+    const parts = voucherParts(data);
     return `<section class="cash-voucher">
-      <div class="cash-brand">${collegeLogo ? `<img class="voucher-logo" src="${esc(collegeLogo)}" alt="Logo">` : ''}<div><h1>${esc(collegeName)}</h1><h2>FEE VOUCHER</h2></div></div>
-      <div class="cash-top"><span><b>Issue Date</b> ${voucherDate(posting.postingDate || posting.createdAt)}</span><span><b>Due Date</b> ${voucherDate(posting.dueDate)}</span></div>
-      <div class="cash-student"><span><b>Name</b> ${esc(admission.studentName || '')}</span><span><b>Father Name</b> ${esc(admission.fatherName || '')}</span></div>
-      <div class="cash-ref"><span>Voucher No: ${esc(posting.voucherNo)}</span><span>Roll/Form: ${esc(admission.rollNo || admission.formNo || '')}</span></div>
-      <table><thead><tr><th>Sr</th><th>Fee Head</th><th>Amount</th></tr></thead><tbody>${rows || '<tr><td colspan="3">No fee lines</td></tr>'}</tbody><tfoot><tr><td></td><td>Total</td><td class="amt">${money(posting.voucherAmount)}</td></tr></tfoot></table>
-      <div class="cash-words"><b>Amount in Words:</b> ${esc(amountInWords(posting.voucherAmount))}</div>
-      <div class="cash-sign"><span>Received By / Stamp</span><span>Signature</span></div>
+      ${voucherHeaderHtml(parts, 'FEE VOUCHER')}
+      ${voucherIdentityHtml(parts)}
+      ${voucherTableHtml(parts)}
+      <div class="voucher-words"><b>Amount in Words:</b> ${esc(amountInWords(parts.payableAmount))}</div>
+      ${note ? `<div class="voucher-note"><b>Note:</b> ${esc(note)}</div>` : ''}
+      <div class="cash-signatures"><span>Received By / Stamp</span><span>Authorized Signature</span></div>
+      <div class="voucher-footer"><span>Generated by eduNex</span><span>Voucher: ${esc(parts.posting.voucherNo)}</span></div>
     </section>`;
   }
 
-  function voucherPrintDocument(details, title = 'Fee Voucher') {
+  function voucherPrintDocument(details, title = 'Fee Voucher', options = {}) {
     const vouchers = Array.isArray(details) ? details : [details];
-    const allCash = vouchers.length && vouchers.every(v => String(v.posting?.voucherType || 'bank') === 'cash');
+    const note = String(options.note || '').trim();
+    const cashPerPage = Math.min(3, Math.max(1, Number(options.cashPerPage || 1)));
     let body = '';
-    if (allCash) {
-      for (let i = 0; i < vouchers.length; i += 3) {
-        body += `<div class="cash-sheet">${vouchers.slice(i, i + 3).map(cashVoucherHtml).join('')}</div>`;
+    let cashBuffer = [];
+    const flushCash = () => {
+      if (!cashBuffer.length) return;
+      body += `<div class="cash-sheet cash-${cashPerPage}">${cashBuffer.map(v => cashVoucherHtml(v, note)).join('')}</div>`;
+      cashBuffer = [];
+    };
+    vouchers.forEach(v => {
+      if (String(v.posting?.voucherType || 'bank') === 'cash') {
+        cashBuffer.push(v);
+        if (cashBuffer.length === cashPerPage) flushCash();
+      } else {
+        flushCash();
+        body += bankVoucherSheetHtml(v, note);
       }
-    } else {
-      body = vouchers.map(v => String(v.posting?.voucherType || 'bank') === 'cash'
-        ? `<div class="cash-sheet single">${cashVoucherHtml(v)}</div>`
-        : `<div class="bank-sheet">${bankVoucherHtml(v)}</div>`).join('');
-    }
+    });
+    flushCash();
     return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title><style>
-      @page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#111;background:#fff}.amt{text-align:right;white-space:nowrap}
-      .bank-sheet{height:281mm;page-break-after:always}.bank-sheet:last-child{page-break-after:auto}.bank-voucher{height:100%;border:1.5px solid #111;padding:8mm;position:relative}.bank-voucher header{display:grid;grid-template-columns:22mm 1fr 30mm;align-items:center;gap:4mm;text-align:center;border-bottom:2px solid #111;padding-bottom:4mm}.bank-brand{min-width:0}.bank-copy{align-self:start;border:1px solid #777;border-radius:3px;padding:4px;font-size:8px;font-weight:700;text-transform:uppercase}.voucher-logo{width:18mm;height:18mm;object-fit:contain}.amount-words{font-size:10px;margin-top:4mm;padding:3mm;border:1px solid #aaa;background:#fafafa}.bank-voucher h1{font-size:21px;margin:0}.bank-voucher h2{font-size:16px;letter-spacing:1px;margin:4px 0 0}.bank-voucher header p{font-size:9px;margin:3px 0}.bank-meta{display:grid;grid-template-columns:repeat(2,1fr);gap:7px 14px;font-size:10px;padding:4mm 0;border-bottom:1px solid #aaa}.bank-meta .due-box{font-size:11px}.bank-student{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 12px;font-size:10px;padding:4mm 0;border-bottom:1px solid #aaa}.bank-student span{display:flex;flex-direction:column;gap:2px}.bank-student b{font-size:8px;text-transform:uppercase;color:#555}.bank-voucher table{width:100%;border-collapse:collapse;margin-top:5mm;font-size:11px}.bank-voucher th,.bank-voucher td{border:1px solid #555;padding:7px}.bank-voucher th:first-child,.bank-voucher td:first-child{width:12mm;text-align:center}.bank-voucher td small{display:block;font-size:9px;color:#555}.bank-voucher tfoot td{font-weight:800;font-size:12px}.bank-note{font-size:9px;margin-top:5mm}.bank-signatures{position:absolute;left:8mm;right:8mm;bottom:10mm;display:grid;grid-template-columns:repeat(3,1fr);gap:10mm;text-align:center;font-size:9px}.bank-signatures span{border-top:1px solid #333;padding-top:3mm}
-      .cash-sheet{height:281mm;display:grid;grid-template-rows:repeat(3,1fr);gap:3mm;page-break-after:always}.cash-sheet:last-child{page-break-after:auto}.cash-sheet.single{display:block}.cash-sheet.single .cash-voucher{height:90mm}.cash-voucher{border:1.4px solid #111;padding:3mm 4mm;position:relative;overflow:hidden}.cash-brand{display:flex;align-items:center;justify-content:center;gap:3mm}.cash-brand .voucher-logo{width:12mm;height:12mm}.cash-voucher h1{text-align:center;font-size:15px;margin:0}.cash-voucher h2{text-align:center;font-size:12px;margin:2px 0 4px;letter-spacing:.8px}.cash-top,.cash-student,.cash-ref{display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:8.5px;margin-bottom:3px}.cash-top span:nth-child(even){text-align:right}.cash-voucher table{width:100%;border-collapse:collapse;font-size:8.5px}.cash-voucher th,.cash-voucher td{border:1px solid #555;padding:3px 4px}.cash-voucher th:first-child,.cash-voucher td:first-child{width:8mm;text-align:center}.cash-voucher tfoot td{font-weight:800}.cash-words{font-size:7.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cash-sign{position:absolute;left:4mm;right:4mm;bottom:3mm;display:grid;grid-template-columns:1fr 1fr;gap:25mm;text-align:center;font-size:7.5px}.cash-sign span{border-top:1px solid #444;padding-top:2mm}
+      @page{size:A4 portrait;margin:7mm}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,sans-serif;color:#0f172a;background:#fff}.amt{text-align:right;white-space:nowrap}
+      .voucher-header{display:grid;grid-template-columns:16mm 1fr 37mm;gap:3mm;align-items:center;border-bottom:1.5px solid #164e7a;padding-bottom:2mm}.voucher-logo{width:14mm;height:14mm;object-fit:contain}.voucher-brand h1{font-size:14px;color:#123f6d;margin:0 0 1mm}.voucher-brand p{font-size:6.8px;margin:0;color:#475569}.voucher-title{text-align:center;background:#eaf2f9;border-radius:2mm;padding:1.5mm 1mm}.voucher-title strong{display:block;font-size:9px}.voucher-title span{display:block;font-size:8px;font-weight:800;margin-top:.5mm}.voucher-title small{display:block;font-size:6.5px;margin-top:.5mm}
+      .voucher-identity{display:grid;grid-template-columns:repeat(4,1fr);gap:1.4mm 3mm;background:#f3f7fb;padding:2mm;margin-top:2mm;border-radius:1mm}.voucher-identity span{font-size:7px;min-width:0}.voucher-identity b{display:block;font-size:6px;color:#475569;margin-bottom:.4mm}.voucher-table{width:100%;border-collapse:collapse;margin-top:2mm;font-size:7px}.voucher-table th,.voucher-table td{border:1px solid #94a3b8;padding:1.2mm}.voucher-table th{background:#e5eff8}.voucher-table th:first-child,.voucher-table td:first-child{width:8mm;text-align:center}.voucher-table th:last-child,.voucher-table td:last-child{width:28mm}.voucher-table td small{display:block;font-size:5.8px;color:#64748b}.voucher-table tfoot td{font-weight:800;background:#edf4fa}.voucher-words{font-size:6.5px;margin-top:1.5mm}.voucher-note{font-size:6.5px;margin-top:1.4mm;padding:1.2mm 1.6mm;background:#f8fafc;border-left:2px solid #164e7a;white-space:pre-wrap}.voucher-footer{display:flex;justify-content:space-between;font-size:5.8px;color:#64748b;margin-top:1.5mm}
+      .bank-sheet{height:283mm;display:grid;grid-template-rows:1fr 4mm 1fr 4mm 1fr;page-break-after:always}.bank-sheet:last-child{page-break-after:auto}.bank-voucher-copy{border:1px solid #94a3b8;border-radius:1.5mm;padding:2.5mm 3mm;overflow:hidden}.bank-voucher-copy.bank-copy .voucher-title{background:#fee2e2}.bank-voucher-copy.college-copy .voucher-title{background:#dcfce7}.bank-voucher-copy.student-copy .voucher-title{background:#dbeafe}.voucher-main-grid{display:grid;grid-template-columns:minmax(0,1fr) 38mm;gap:2.5mm}.voucher-office-box{margin-top:2mm;border:1px solid #cbd5e1;padding:2mm;font-size:6.2px;display:flex;flex-direction:column;gap:2.5mm}.voucher-office-box b{font-size:6.8px}.voucher-cut{height:4mm;border-top:1px dashed #64748b;font-size:7px;line-height:3mm;color:#475569}
+      .cash-sheet{height:283mm;display:grid;page-break-after:always}.cash-sheet:last-child{page-break-after:auto}.cash-sheet.cash-1{grid-template-rows:1fr}.cash-sheet.cash-2{grid-template-rows:repeat(2,1fr);gap:4mm}.cash-sheet.cash-3{grid-template-rows:repeat(3,1fr);gap:3mm}.cash-voucher{border:1.2px solid #64748b;border-radius:2mm;padding:4mm;position:relative;overflow:hidden}.cash-sheet.cash-1 .cash-voucher{padding:7mm}.cash-sheet.cash-1 .voucher-header{grid-template-columns:22mm 1fr 45mm;padding-bottom:4mm}.cash-sheet.cash-1 .voucher-logo{width:20mm;height:20mm}.cash-sheet.cash-1 .voucher-brand h1{font-size:20px}.cash-sheet.cash-1 .voucher-brand p{font-size:9px}.cash-sheet.cash-1 .voucher-title strong{font-size:12px}.cash-sheet.cash-1 .voucher-title span{font-size:11px}.cash-sheet.cash-1 .voucher-identity{font-size:10px;padding:4mm;margin-top:4mm}.cash-sheet.cash-1 .voucher-identity span{font-size:10px}.cash-sheet.cash-1 .voucher-identity b{font-size:8px}.cash-sheet.cash-1 .voucher-table{font-size:10px;margin-top:4mm}.cash-sheet.cash-1 .voucher-table th,.cash-sheet.cash-1 .voucher-table td{padding:2.5mm}.cash-sheet.cash-1 .voucher-words,.cash-sheet.cash-1 .voucher-note{font-size:9px;margin-top:3mm}.cash-signatures{display:grid;grid-template-columns:1fr 1fr;gap:25mm;text-align:center;font-size:6.5px;margin-top:3mm}.cash-signatures span{border-top:1px solid #64748b;padding-top:1.5mm}.cash-sheet.cash-1 .cash-signatures{font-size:9px;margin-top:12mm}
       @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
     </style></head><body>${body}</body></html>`;
   }
@@ -739,20 +816,7 @@ export default function FeesPage() {
     win.document.write('<p style="font-family:Arial;padding:20px">Loading voucher...</p>');
     try {
       const res = await api.get(`/fees/posting/vouchers/${voucherId}`);
-      win.document.open(); win.document.write(voucherPrintDocument(res.data, res.data.posting?.voucherNo || 'Fee Voucher')); win.document.close();
-      win.focus(); setTimeout(() => win.print(), 250);
-    } catch (e) { win.close(); setError(getError(e)); }
-  }
-
-  async function printVoucherBatch(batchNo) {
-    const rows = generatedVouchers.filter(v => String(v.batchNo || '') === String(batchNo || ''));
-    if (!rows.length) return;
-    const win = window.open('', '_blank', 'width=1200,height=850');
-    if (!win) { setError('Pop-up blocked. Please allow pop-ups to print the voucher batch.'); return; }
-    win.document.write('<p style="font-family:Arial;padding:20px">Loading voucher batch...</p>');
-    try {
-      const responses = await Promise.all(rows.map(v => api.get(`/fees/posting/vouchers/${v._id}`)));
-      win.document.open(); win.document.write(voucherPrintDocument(responses.map(r => r.data), batchNo)); win.document.close();
+      win.document.open(); win.document.write(voucherPrintDocument(res.data, res.data.posting?.voucherNo || 'Fee Voucher', { cashPerPage: 1 })); win.document.close();
       win.focus(); setTimeout(() => win.print(), 250);
     } catch (e) { win.close(); setError(getError(e)); }
   }
@@ -907,7 +971,12 @@ export default function FeesPage() {
   }, [bulkVoucher.academicSessionId, programs, structures]);
 
   function changeBulkVoucherSession(academicSessionId) {
-    setBulkVoucher(prev => ({ ...prev, academicSessionId, programIds: [] }));
+    setBulkVoucher(prev => ({ ...prev, academicSessionId, wingId: '', programIds: [] }));
+  }
+  function bulkScopeProgramIds() {
+    if (bulkVoucher.scope === 'program') return bulkVoucher.programIds;
+    if (bulkVoucher.scope === 'wing') return bulkVoucherPrograms.filter(p => String(p.wingId?._id || p.wingId || '') === String(bulkVoucher.wingId || '')).map(p => p._id);
+    return bulkVoucherPrograms.map(p => p._id);
   }
 
   async function createBulkVouchers(e) {
@@ -915,7 +984,7 @@ export default function FeesPage() {
     try {
       const res = await api.post('/fees/posting/bulk', {
         academicSessionId: bulkVoucher.academicSessionId,
-        programIds: bulkVoucher.programIds,
+        programIds: bulkScopeProgramIds(),
         dueDate: bulkVoucher.dueDate,
         periodKey: bulkVoucher.dueDate ? `due-${bulkVoucher.dueDate}` : '',
         voucherType: bulkVoucher.voucherType || 'bank',
@@ -928,8 +997,19 @@ export default function FeesPage() {
         : '';
       window.alert(`Bulk voucher batch ${res.data.batchNo}: ${res.data.generated} generated, ${res.data.skipped} skipped.${skippedText}`);
       if (res.data.generated > 0) {
+        const voucherIds = (res.data.vouchers || []).map(v => v._id).filter(Boolean);
+        if (voucherIds.length) {
+          const win = window.open('', '_blank', 'width=1200,height=850');
+          if (win) {
+            win.document.write('<p style="font-family:Arial;padding:20px">Preparing bulk vouchers...</p>');
+            const responses = await Promise.all(voucherIds.map(id => api.get(`/fees/posting/vouchers/${id}`)));
+            win.document.open();
+            win.document.write(voucherPrintDocument(responses.map(r => r.data), res.data.batchNo, { note: bulkVoucher.printNote, cashPerPage: bulkVoucher.voucherType === 'cash' ? bulkVoucher.cashPerPage : 1 }));
+            win.document.close(); win.focus(); setTimeout(() => win.print(), 250);
+          } else setError('Pop-up blocked. Please allow pop-ups to print bulk vouchers.');
+        }
         setShowBulkVoucher(false);
-        setBulkVoucher({ academicSessionId: '', programIds: [], dueDate: '', additionalLines: [], voucherType: defaultVoucherType, selectedFeeHeadCodes: [] });
+        setBulkVoucher({ academicSessionId: '', scope: 'college', wingId: '', programIds: [], dueDate: '', additionalLines: [], voucherType: defaultVoucherType, selectedFeeHeadCodes: [], printNote: '', cashPerPage: 3 });
       }
       await Promise.all([loadPostingStudents(), loadFeeVouchers()]);
     } catch (e2) { setError(getError(e2)); }
@@ -1109,7 +1189,7 @@ export default function FeesPage() {
           {studentDetailTab === 'vouchers-payments' && <div className="fee-workspace-panel">
             <div className="fee-section-title-row"><div><h3>Vouchers &amp; Payments</h3><p className="muted">Generate or print vouchers and post payments from one workspace.</p></div><div className="row-actions"><button type="button" onClick={() => openPosting(selectedPostingRow || { plan: selectedStudent.plan })}>+ Generate Voucher</button><button type="button" className="secondary" onClick={() => openPayment(selectedPostingRow || { plan: selectedStudent.plan })}>+ Post Payment</button></div></div>
             <div className="fee-table-wrap"><table><thead><tr><th>Voucher No</th><th>Type</th><th>Issue Date</th><th>Due Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-              {studentVoucherPager.rows.map(v => <tr key={v._id}><td><strong>{v.voucherNo}</strong></td><td>{v.voucherType === 'cash' ? 'Cash' : 'Bank'}</td><td>{isoDate(v.postingDate || v.createdAt)}</td><td>{isoDate(v.dueDate)}</td><td>{money(v.voucherAmount)}</td><td><span className={`fee-voucher-status ${v.status}`}>{v.status}</span></td><td><div className="row-actions"><button type="button" onClick={() => printVoucher(v._id)}>Print</button>{String(v.status || '').toLowerCase() !== 'paid' && <button type="button" className="secondary" onClick={() => openVoucherPosting(v)}>Post</button>}</div></td></tr>)}
+              {studentVoucherPager.rows.map(v => <tr key={v._id}><td><strong>{v.voucherNo}</strong></td><td>{v.voucherType === 'cash' ? 'Cash' : 'Bank'}</td><td>{isoDate(v.postingDate || v.createdAt)}</td><td>{isoDate(v.dueDate)}</td><td>{money(v.voucherAmount)}</td><td><span className={`fee-voucher-status ${v.status}`}>{v.status}</span></td><td><div className="row-actions">{String(v.status || '').toLowerCase() !== 'paid' && <button type="button" onClick={() => printVoucher(v._id)}>Print</button>}{String(v.status || '').toLowerCase() !== 'paid' && <button type="button" className="secondary" onClick={() => openVoucherPosting(v)}>Post</button>}</div></td></tr>)}
               {!selectedVouchers.length && <tr><td colSpan="7">No vouchers generated for this student.</td></tr>}
             </tbody></table></div><Pagination {...studentVoucherPager} />
             <div className="fee-subsection-heading"><h4>Payment History</h4></div>
@@ -1122,10 +1202,10 @@ export default function FeesPage() {
       </>}
 
       {tab === 'generate-vouchers' && <>
-        <div className="fee-section-title-row"><div><h2>Vouchers &amp; Postings</h2><p className="muted">Generate vouchers, search existing vouchers, print them, and post received payments.</p></div><button type="button" onClick={() => setShowBulkVoucher(true)}>+ Generate Vouchers</button></div>
+        <div className="fee-section-title-row"><div><h2>Vouchers &amp; Postings</h2><p className="muted">Generate vouchers, search existing vouchers, print them, and post received payments.</p></div><button type="button" onClick={() => setShowBulkVoucher(true)}>+ Bulk Generate & Print Vouchers</button></div>
         <div className="fee-section-title-row fee-voucher-register-title"><h3>Generated Vouchers</h3><label className="fee-voucher-search"><input value={voucherSearch} onChange={e => setVoucherSearch(e.target.value)} placeholder="Search vouchers..." aria-label="Search generated vouchers" /></label></div>
         <div className="fee-table-wrap"><table><thead><tr><th>Voucher No</th><th>Type</th><th>Student</th><th>Program</th><th>Due Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-          {voucherPager.rows.map(v => <tr key={v._id}><td><strong>{v.voucherNo}</strong></td><td><span className="fee-type-pill">{v.voucherType === 'cash' ? 'Cash' : 'Bank'}</span></td><td>{v.admissionApplicationId?.studentName}<small>{v.admissionApplicationId?.rollNo || v.admissionApplicationId?.formNo || ''}</small></td><td>{v.admissionApplicationId?.programId?.name || '—'}</td><td>{isoDate(v.dueDate) || '—'}</td><td>{money(v.voucherAmount)}</td><td><span className={`fee-voucher-status ${v.status}`}>{v.status}</span></td><td><div className="row-actions"><button type="button" onClick={() => printVoucher(v._id)}>Print</button>{String(v.status || '').toLowerCase() !== 'paid' && <button type="button" className="secondary" onClick={() => openVoucherPosting(v)}>Post</button>}</div></td></tr>)}
+          {voucherPager.rows.map(v => <tr key={v._id}><td><strong>{v.voucherNo}</strong></td><td><span className="fee-type-pill">{v.voucherType === 'cash' ? 'Cash' : 'Bank'}</span></td><td>{v.admissionApplicationId?.studentName}<small>{v.admissionApplicationId?.rollNo || v.admissionApplicationId?.formNo || ''}</small></td><td>{v.admissionApplicationId?.programId?.name || '—'}</td><td>{isoDate(v.dueDate) || '—'}</td><td>{money(v.voucherAmount)}</td><td><span className={`fee-voucher-status ${v.status}`}>{v.status}</span></td><td><div className="row-actions">{String(v.status || '').toLowerCase() !== 'paid' && <button type="button" onClick={() => printVoucher(v._id)}>Print</button>}{String(v.status || '').toLowerCase() !== 'paid' && <button type="button" className="secondary" onClick={() => openVoucherPosting(v)}>Post</button>}</div></td></tr>)}
           {!filteredGeneratedVouchers.length && <tr><td colSpan="8">{voucherSearch ? 'No vouchers match your search.' : 'No vouchers generated yet.'}</td></tr>}
         </tbody></table></div><Pagination {...voucherPager} />
       </>}
@@ -1210,7 +1290,7 @@ export default function FeesPage() {
       </form></div>}
 
       {showBulkVoucher && <div className="fee-modal-backdrop"><form className="fee-package-modal" onSubmit={createBulkVouchers}>
-        <div className="fee-modal-header"><div><h3>Generate Vouchers</h3><p>Select the session first, then choose programs and fee heads for this voucher batch.</p></div><button type="button" className="fee-close" onClick={() => setShowBulkVoucher(false)}>×</button></div>
+        <div className="fee-modal-header"><div><h3>Bulk Generate &amp; Print Vouchers</h3><p>Generate one current voucher per student. Previous unpaid balances are carried forward as arrears.</p></div><button type="button" className="fee-close" onClick={() => setShowBulkVoucher(false)}>×</button></div>
         <div className="fee-package-body fee-bulk-voucher-body fee-bulk-voucher-formatted">
           <section className="fee-bulk-section">
             <div className="fee-bulk-section-title"><strong>Voucher Settings</strong><small>Session is required and limits the eligible programs/students.</small></div>
@@ -1219,18 +1299,24 @@ export default function FeesPage() {
               {feeVoucherMode === 'bank_and_cash' ? <label><span>Voucher Type *</span><select value={bulkVoucher.voucherType || defaultVoucherType} onChange={e => setBulkVoucher({ ...bulkVoucher, voucherType: e.target.value })}><option value="bank">Bank Voucher</option><option value="cash">Cash Voucher</option></select></label> : <label><span>Voucher Type</span><input readOnly value={feeVoucherMode === 'cash_only' ? 'Cash Voucher' : 'Bank Voucher'} /></label>}
               <label><span>Voucher Due Date *</span><input required type="date" value={bulkVoucher.dueDate} onChange={e => setBulkVoucher({ ...bulkVoucher, dueDate: e.target.value })} /></label>
             </div>
+            <div className="fee-grid fee-grid-3 fee-full">
+              <label><span>Print Scope *</span><select value={bulkVoucher.scope} onChange={e => setBulkVoucher({ ...bulkVoucher, scope: e.target.value, wingId: '', programIds: [] })}><option value="college">Complete College</option><option value="wing">Complete Wing</option><option value="program">Class / Program</option></select></label>
+              {bulkVoucher.scope === 'wing' && <label><span>Wing *</span><select required value={bulkVoucher.wingId} onChange={e => setBulkVoucher({ ...bulkVoucher, wingId: e.target.value, programIds: [] })}><option value="">Select Wing</option>{wings.filter(w => w.isActive !== false).map(w => <option key={w._id} value={w._id}>{w.name}</option>)}</select></label>}
+              {bulkVoucher.voucherType === 'cash' && <label><span>Cash vouchers per A4</span><select value={bulkVoucher.cashPerPage} onChange={e => setBulkVoucher({ ...bulkVoucher, cashPerPage: Number(e.target.value) })}><option value="1">1 per page</option><option value="2">2 per page</option><option value="3">3 per page</option></select></label>}
+            </div>
           </section>
-          <section className="fee-bulk-section">
-            <div className="fee-bulk-section-title"><strong>Classes / Programs *</strong><small>{bulkVoucher.academicSessionId ? 'Only programs with a fee structure in the selected session are shown.' : 'Select Academic Session first.'}</small></div>
+          {bulkVoucher.scope === 'program' && <section className="fee-bulk-section">
+            <div className="fee-bulk-section-title"><strong>Classes / Programs *</strong><small>{bulkVoucher.academicSessionId ? 'Select one or more classes/programs.' : 'Select Academic Session first.'}</small></div>
             <div className="fee-choice-grid">{bulkVoucherPrograms.map(p => <label className="fee-choice-card" key={p._id}><input type="checkbox" checked={bulkVoucher.programIds.includes(p._id)} onChange={() => toggleBulkProgram(p._id)} /><span>{p.name}</span></label>)}{bulkVoucher.academicSessionId && !bulkVoucherPrograms.length && <div className="fee-empty-choice">No programs with a Fee Structure were found for this session.</div>}</div>
-          </section>
+          </section>}
           <section className="fee-bulk-section">
             <div className="fee-bulk-section-title"><strong>Fee Heads to Include *</strong><small>Eligibility is checked separately for every student.</small></div>
             <div className="fee-choice-grid fee-head-choice-grid">{heads.map(h => <label className="fee-choice-card" key={h.code}><input type="checkbox" checked={(bulkVoucher.selectedFeeHeadCodes || []).includes(h.code)} onChange={() => toggleBulkFeeHead(h.code)} /><span>{h.name}</span></label>)}</div>
           </section>
           <div className="fee-bulk-note">The selected Voucher Due Date is the actual due date. For annual Tuition, the next unpaid installment is used regardless of its package reference date. Hostel and Transport amounts come from active module assignments; existing arrears remain in the central Fees ledger.</div>
+          <label className="fee-print-note-field"><span>Note for this bulk print (optional)</span><textarea rows="3" value={bulkVoucher.printNote} onChange={e => setBulkVoucher({ ...bulkVoucher, printNote: e.target.value })} placeholder="Example: Please deposit fee before the due date." /><small>This note is printed on every voucher in this bulk run only.</small></label>
         </div>
-        <div className="fee-modal-actions"><button type="button" className="secondary" onClick={() => setShowBulkVoucher(false)}>Cancel</button><button disabled={busy || !bulkVoucher.academicSessionId || !bulkVoucher.programIds.length || !bulkVoucher.dueDate || !(bulkVoucher.selectedFeeHeadCodes || []).length}>{busy ? 'Generating...' : 'Generate Vouchers'}</button></div>
+        <div className="fee-modal-actions"><button type="button" className="secondary" onClick={() => setShowBulkVoucher(false)}>Cancel</button><button disabled={busy || !bulkVoucher.academicSessionId || !bulkVoucher.dueDate || !(bulkVoucher.selectedFeeHeadCodes || []).length || (bulkVoucher.scope === 'program' && !bulkVoucher.programIds.length) || (bulkVoucher.scope === 'wing' && !bulkVoucher.wingId)}>{busy ? 'Generating...' : 'Generate & Print Vouchers'}</button></div>
       </form></div>}
 
       {paymentEditor && paymentSummary && <div className="fee-modal-backdrop"><form className="fee-package-modal" onSubmit={savePayment} onWheelCapture={e => {

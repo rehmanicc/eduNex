@@ -1343,7 +1343,7 @@ exports.createBulkFeePostings = async (req, res) => {
       if (posting) {
         await refreshPostingPlan(plan);
         await notifyVoucherGenerated(collegeId,admission,posting);
-        results.push({ planId: plan._id, admissionId: admission._id, voucherNo: posting.voucherNo, voucherAmount: posting.voucherAmount });
+        results.push({ _id: posting._id, planId: plan._id, admissionId: admission._id, voucherNo: posting.voucherNo, voucherAmount: posting.voucherAmount });
       } else skipped.push({
         planId: plan._id,
         admissionId: admission._id,

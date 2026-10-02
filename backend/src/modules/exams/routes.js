@@ -3,6 +3,7 @@ const permit=require('../../middleware/permissions');
 const P=require('../../constants/permissions');
 const c=require('./controller');
 const analytics=require('./analytics');
+const correctionAccess=(req,res,next)=>{if(req.user?.systemRole==='platform_owner')return next();const roles=new Set(req.user?.roleCodes||[]);if(roles.has('admin')||roles.has('exam_controller'))return next();return res.status(403).json({error:'Only Admin or Exam Controller can correct published results'});};
 
 r.get('/types',permit(P.VIEW_EXAMS),c.listExamTypes);
 r.post('/types',permit(P.MANAGE_EXAMS),c.createExamType);
@@ -33,6 +34,9 @@ r.post('/schedules/:scheduleId/reopen',permit(P.VERIFY_EXAM_MARKS),c.reopenMarks
 
 r.post('/exams/:examId/compile',permit(P.VERIFY_EXAM_MARKS),c.compileExam);
 r.post('/exams/:examId/publish-results',permit(P.PUBLISH_RESULTS),c.publishResults);
+// Published-result corrections are restricted to Admin and Exam Controller.
+r.put('/result-corrections/:resultId',correctionAccess,c.correctPublishedResult);
+r.get('/result-corrections',correctionAccess,c.listResultCorrections);
 
 r.get('/analytics',permit(P.VIEW_EXAMS),analytics.analytics);
 r.get('/results',permit(P.VIEW_EXAMS),c.listResults);

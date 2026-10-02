@@ -17,6 +17,7 @@ router.post('/student/learn-play/word-puzzle/hint',asyncHandler(c.studentWordPuz
 router.get('/student/attendance',asyncHandler(c.studentAttendance));
 router.get('/student/timetable',asyncHandler(c.studentTimetable));
 router.get('/student/fees',asyncHandler(c.studentFees));
+router.get('/student/fees/vouchers/:id',asyncHandler(c.studentFeeVoucher));
 router.get('/student/results',asyncHandler(c.studentResults));
 router.get('/student/library',asyncHandler(c.studentLibrary));
 router.get('/student/library/catalog',asyncHandler(c.studentLibraryCatalog));

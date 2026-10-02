@@ -118,6 +118,22 @@ exports.studentFees = async (req,res) => {
   res.json({plan:{id:plan._id,billingCycle:plan.billingCycle,totalAmount:money(plan.totalAmount),totalPosted:money(plan.totalPosted),totalPaid:money(plan.totalPaid),balance:money(plan.balance),advanceCredit:money(plan.advanceCredit),status:plan.status,feeStructure:plan.feeStructureId||null,installments:(plan.installments||[]).map(i=>({id:i._id,title:i.title,amount:money(i.amount),paidAmount:money(i.paidAmount),dueDate:i.dueDate,sequence:i.sequence}))},summary:{totalAmount:money(plan.totalAmount),totalPosted:money(plan.totalPosted),totalPaid:money(plan.totalPaid),balance:money(plan.balance),openBalance,advanceCredit:money(plan.advanceCredit)},vouchers,payments:payments.map(p=>({id:p._id,receiptNo:p.receiptNo||'',amount:money(p.amount),paymentDate:p.paymentDate,paymentMethod:p.paymentMethod||'',challanNo:p.challanNo||p.referenceNo||''}))});
 };
 
+exports.studentFeeVoucher = async (req,res) => {
+  const student=await requireStudent(req);
+  if(!student.admissionApplicationId)return res.status(404).json({error:'Student fee profile not found'});
+  const plan=await StudentFeePlan.findOne(req.tenantFilter({admissionApplicationId:student.admissionApplicationId})).select('_id').lean();
+  if(!plan)return res.status(404).json({error:'Student fee plan not found'});
+  const posting=await FeePosting.findOne(req.tenantFilter({_id:req.params.id,studentFeePlanId:plan._id,status:{$ne:'cancelled'}}))
+    .populate({path:'admissionApplicationId',select:'studentName fatherName formNo rollNo contactNo address programId academicSessionId periodNumber',populate:[{path:'programId',select:'name code'},{path:'academicSessionId',select:'name'}]})
+    .lean();
+  if(!posting)return res.status(404).json({error:'Fee voucher not found'});
+  let college=null;
+  try{const College=require('../../models/College');college=await College.findById(posting.collegeId).select('name displayName shortName address phone phoneNumber email website logo logoUrl').lean();}catch(_){}
+  const linePaid=(posting.lines||[]).reduce((sum,line)=>sum+Number(line.paidAmount||0)+Number(line.advanceApplied||0),0);
+  const outstandingAmount=money(Math.max(0,Number(posting.voucherAmount||0)-linePaid));
+  res.json({posting,college,outstandingAmount});
+};
+
 exports.studentResults = async (req,res) => {
   const student=await requireStudent(req);
   const results=await ExamResult.find(req.tenantFilter({studentId:student._id,publishedAt:{$ne:null}})).populate('examId','name code status startDate endDate publishedAt academicSessionId').populate('courseId','name code creditHours periodNumber').sort({publishedAt:-1,createdAt:-1}).lean();

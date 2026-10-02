@@ -419,3 +419,15 @@
   .fee-student-basic-card{grid-template-columns:1fr}
   .fee-student-basic-card>.fee-student-wide{grid-column:span 1}
 }
+
+/* eduNex voucher print batch controls — locked voucher design */
+.fee-batch-print-modal{max-width:720px}
+.fee-print-density{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.fee-print-density label{display:flex!important;align-items:center;gap:8px;padding:12px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;cursor:pointer}
+.fee-print-density label.active{border-color:#2563eb;background:#eff6ff;box-shadow:0 0 0 1px #2563eb inset}
+.fee-print-density input{width:16px!important;height:16px!important;min-height:0!important;margin:0!important}
+.fee-print-density strong{font-size:18px;color:#0f172a}.fee-print-density span{font-size:12px;color:#475569}
+.fee-print-note-field{display:grid!important;gap:6px;margin-top:12px;font-size:12px;font-weight:700;color:#334155}
+.fee-print-note-field textarea{width:100%;resize:vertical;min-height:76px;padding:9px 10px;border:1px solid #cbd5e1;border-radius:8px;font:inherit;font-weight:400}
+.fee-print-note-field small{font-size:11px;font-weight:500;color:#64748b}
+@media(max-width:620px){.fee-print-density{grid-template-columns:1fr}}
