@@ -62,7 +62,9 @@ exports.login = async (req, res) => {
 
   let loginCollege = null;
   if (collegeCode) {
-    loginCollege = await College.findOne({ code: collegeCode }).select('_id isActive');
+    // Load the institution once and reuse the same document in the login response.
+    // Previously login performed a second College lookup after password verification.
+    loginCollege = await College.findOne({ code: collegeCode });
     if (!loginCollege) return res.status(401).json({ error: 'Invalid college code or credentials' });
     if (!loginCollege.isActive) return res.status(403).json({ error: 'Institution is inactive' });
   }
@@ -88,17 +90,26 @@ exports.login = async (req, res) => {
 
   let college = null;
   if (user.collegeId) {
-    college = await College.findById(user.collegeId);
+    // Tenant logins already resolved the college by code above. Reuse it instead
+    // of making the same database round-trip twice.
+    college = loginCollege && String(loginCollege._id) === String(user.collegeId)
+      ? loginCollege
+      : await College.findById(user.collegeId);
     if (!college || !college.isActive) return res.status(403).json({ error: 'Institution is inactive' });
   }
 
   const effective = new Set(user.directPermissions || []);
   for (const role of user.roleIds || []) if (role.isActive) for (const permission of role.permissions || []) effective.add(permission);
   user.effectivePermissions = [...effective];
-  user.lastLoginAt = new Date();
-  await user.save();
 
-  return res.json({ token: sign(user), user: dto(user), college, portalAccess: await portalAccessFor(user) });
+  // These operations are independent after credentials have been verified.
+  // Run them together so portal-status lookup does not sit behind a full User save.
+  const [portalAccess] = await Promise.all([
+    portalAccessFor(user),
+    User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } })
+  ]);
+
+  return res.json({ token: sign(user), user: dto(user), college, portalAccess });
 };
 
 exports.changePassword = async (req, res) => {
