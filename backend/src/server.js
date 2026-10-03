@@ -45,5 +45,5 @@ app.use(errorHandler);
 
 const port = Number(process.env.PORT || 5000);
 connectDB()
-  .then(() => app.listen(port, () => console.log(`College CMS API on ${port}`)))
+  .then(() => app.listen(port, '127.0.0.1', () => console.log(`College CMS API on ${port}`)))
   .catch(e => { console.error(e); process.exit(1); });
