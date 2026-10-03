@@ -1,14 +1,15 @@
-import {useEffect,useMemo,useState} from 'react';
+import {lazy,Suspense,useEffect,useMemo,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import api from '../../api/client';
 import './timetable.css';
-import TimetableConstraints from './TimetableConstraints';
-import TimetableGenerator from './TimetableGenerator';
-import TimetableWholeView from './TimetableWholeView';
-import TimetableVerification from './TimetableVerification';
-import TimetableTeachersTab from './TimetableTeachersTab';
-import TimetableClassesTab from './TimetableClassesTab';
-import TimetableReports from './TimetableReports';
+const TimetableGenerator=lazy(()=>import('./TimetableGenerator'));
+const TimetableWholeView=lazy(()=>import('./TimetableWholeView'));
+const TimetableVerification=lazy(()=>import('./TimetableVerification'));
+const TimetableTeachersTab=lazy(()=>import('./TimetableTeachersTab'));
+const TimetableClassesTab=lazy(()=>import('./TimetableClassesTab'));
+const TimetableReports=lazy(()=>import('./TimetableReports'));
+
+const LazyPanel=({children})=><Suspense fallback={<section className="tt-panel"><div className="tt-empty">Loading...</div></section>}>{children}</Suspense>;
 
 const DAYS=[['monday','Monday'],['tuesday','Tuesday'],['wednesday','Wednesday'],['thursday','Thursday'],['friday','Friday'],['saturday','Saturday'],['sunday','Sunday']];
 const dayNumber=d=>['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].indexOf(d);
@@ -270,16 +271,16 @@ export default function Timetable(){
       </>}
   </section>}
 
-  {tab==='timetable'&&<TimetableWholeView
+  {tab==='timetable'&&<LazyPanel><TimetableWholeView
    options={o}
    generator={<TimetableGenerator options={o} onChanged={async()=>{await load();await loadGrid();}}/>}
    verification={<TimetableVerification options={o}/>}
    onClose={()=>setTab('assignments')}
-  />}
-  {tab==='teachers'&&<TimetableTeachersTab options={o}/>}
-  {tab==='classes'&&<TimetableClassesTab options={o} assignments={assignments}/>}
+  /></LazyPanel>}
+  {tab==='teachers'&&<LazyPanel><TimetableTeachersTab options={o}/></LazyPanel>}
+  {tab==='classes'&&<LazyPanel><TimetableClassesTab options={o} assignments={assignments}/></LazyPanel>}
 
-  {tab==='reports'&&<TimetableReports options={o}/>}
+  {tab==='reports'&&<LazyPanel><TimetableReports options={o}/></LazyPanel>}
 
   {tab==='bell'&&<section className="tt-panel tt-settings-panel">
    <div className="tt-section-head"><div><h2>Bell Timings</h2><p>Define working days, teaching periods and breaks for the college, branch, wing, class/program or individual section.</p></div></div>
