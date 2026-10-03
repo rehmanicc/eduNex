@@ -35,6 +35,8 @@ schema.index(
 schema.index({ collegeId: 1, sessionId: 1, studentId: 1 });
 // Performance indexes for attendance reporting and operational lookups.
 schema.index({ collegeId: 1, attendanceDate: 1, sectionId: 1 });
+// Hot path for class/session attendance save + finalization.
+schema.index({ collegeId: 1, sectionId: 1, attendanceDate: 1, slotKey: 1 });
 schema.index({ collegeId: 1, academicSessionId: 1, attendanceDate: 1 });
 module.exports = mongoose.model('Attendance', schema);
 

@@ -155,19 +155,21 @@ exports.markContext = async (req, res) => {
   const allowed = await canMarkContext(req, req.body);
   if (!allowed) return res.status(403).json({ error: 'You are not authorized to mark attendance for this class/section.' });
 
-  const rows = await service.upsertManualContext({
+  const date = req.body.date || new Date();
+  const submission = await service.upsertManualContext({
     collegeId: collegeId(req), sectionId: req.body.sectionId, timetableId: req.body.timetableId,
-    slotKey: req.body.slotKey, date: req.body.date || new Date(), entries: req.body.entries || [], markedBy: req.user._id
+    slotKey: req.body.slotKey, date, entries: req.body.entries || [], markedBy: req.user._id, includeMeta: true
   });
 
-  // One Save is the submission point. After submission the teacher can only view it;
-  // Principal/Admin/Director use the correction workflow for later changes.
+  // One Save is the submission point. Reuse the session/student/attendance data
+  // already resolved above so finalization does not repeat the same database work.
   const session = await service.finalizeContext({
     collegeId: collegeId(req), sectionId: req.body.sectionId, timetableId: req.body.timetableId,
-    slotKey: req.body.slotKey, date: req.body.date || new Date(), userId: req.user._id
+    slotKey: req.body.slotKey, date, userId: req.user._id,
+    existingSession: submission.session, activeStudentIds: submission.activeStudentIds, existingRows: submission.rows
   });
-  await audit(req, 'SUBMIT_ATTENDANCE', 'AttendanceSession', session._id, { entries: rows.length });
-  res.json({ rows, session });
+  await audit(req, 'SUBMIT_ATTENDANCE', 'AttendanceSession', session._id, { entries: submission.rows.length });
+  res.json({ rows: submission.rows, session });
 };
 
 exports.finalizeContext = async (req, res) => {

@@ -306,7 +306,7 @@ async function studentsForContext({ collegeId, sectionId, timetableId, slotKey, 
   return { students, session, attendanceByStudent };
 }
 
-async function upsertManualContext({ collegeId, sectionId, timetableId, slotKey, date, entries, markedBy }) {
+async function upsertManualContext({ collegeId, sectionId, timetableId, slotKey, date, entries, markedBy, includeMeta = false }) {
   let session;
   let section;
   let timetable = null;
@@ -329,7 +329,8 @@ async function upsertManualContext({ collegeId, sectionId, timetableId, slotKey,
   if (session.status === 'cancelled') throw httpError('Cannot mark attendance for a cancelled session', 409);
   if (session.status === 'finalized') throw httpError('Attendance session is finalized. Use correction workflow.', 409);
 
-  const validStudents = new Set((await Student.find({ collegeId, sectionId: section._id, status: 'active' }).distinct('_id')).map(String));
+  const activeStudentIds = await Student.find({ collegeId, sectionId: section._id, status: 'active' }).distinct('_id');
+  const validStudents = new Set(activeStudentIds.map(String));
   const validStatuses = new Set(['present', 'late', 'absent', 'leave', 'short_leave']);
   for (const entry of entries) {
     if (!validStudents.has(String(entry.studentId))) throw httpError('Student is not in this section', 400);
@@ -359,15 +360,41 @@ async function upsertManualContext({ collegeId, sectionId, timetableId, slotKey,
     upsert: true
   }}));
   if (ops.length) await Attendance.bulkWrite(ops);
-  return Attendance.find({ collegeId, sectionId: section._id, attendanceDate: day, slotKey: session.slotKey }).populate('studentId', 'name admissionNo rollNo');
+  const rows = await Attendance.find({ collegeId, sectionId: section._id, attendanceDate: day, slotKey: session.slotKey })
+    .populate('studentId', 'name admissionNo rollNo')
+    .lean();
+  return includeMeta ? { rows, session, activeStudentIds } : rows;
 }
 
-async function finalizeContext({ collegeId, sectionId, timetableId, slotKey, date, userId }) {
-  const session = await openContext({ collegeId, sectionId, timetableId, slotKey, date, userId });
+async function finalizeContext({
+  collegeId, sectionId, timetableId, slotKey, date, userId,
+  existingSession = null, activeStudentIds = null, existingRows = null
+}) {
+  const day = asDateOnly(date);
+  const session = existingSession || await openContext({ collegeId, sectionId, timetableId, slotKey, date: day, userId });
   if (session.status === 'cancelled') throw httpError('Cancelled attendance session cannot be finalized', 409);
   if (session.status === 'finalized') return session;
-  const students = await Student.find({ collegeId, sectionId: session.sectionId, status: 'active' }).select('_id');
-  const existingIds = new Set((await Attendance.find({ collegeId, sectionId: session.sectionId, attendanceDate: asDateOnly(date), slotKey: session.slotKey }).distinct('studentId')).map(String));
+
+  let students;
+  let existingIds;
+  let notifyRows;
+
+  if (Array.isArray(activeStudentIds) && Array.isArray(existingRows)) {
+    students = activeStudentIds.map(_id => ({ _id }));
+    existingIds = new Set(existingRows.map(r => String(r.studentId?._id || r.studentId)));
+    notifyRows = existingRows.map(r => ({ studentId: r.studentId?._id || r.studentId, status: r.status }));
+  } else {
+    const [studentDocs, attendanceRows] = await Promise.all([
+      Student.find({ collegeId, sectionId: session.sectionId, status: 'active' }).select('_id').lean(),
+      Attendance.find({ collegeId, sectionId: session.sectionId, attendanceDate: day, slotKey: session.slotKey })
+        .select('studentId status')
+        .lean()
+    ]);
+    students = studentDocs;
+    existingIds = new Set(attendanceRows.map(r => String(r.studentId)));
+    notifyRows = attendanceRows.map(r => ({ studentId: r.studentId, status: r.status }));
+  }
+
   const now = new Date();
   const missing = students.filter(s => !existingIds.has(String(s._id)));
   if (missing.length) {
@@ -379,7 +406,7 @@ async function finalizeContext({ collegeId, sectionId, timetableId, slotKey, dat
       courseId: session.courseId || null,
       sectionId: session.sectionId,
       timetableId: session.timetableId || null,
-      attendanceDate: asDateOnly(date),
+      attendanceDate: day,
       attendanceMode: session.attendanceMode,
       slotKey: session.slotKey,
       scheduledStartMinutes: session.scheduledStartMinutes,
@@ -390,23 +417,39 @@ async function finalizeContext({ collegeId, sectionId, timetableId, slotKey, dat
       isFinalized: true,
       finalizedAt: now
     })), { ordered: false }).catch(err => { if (err?.code !== 11000) throw err; });
+    notifyRows.push(...missing.map(s => ({ studentId: s._id, status: 'absent' })));
   }
-  await Attendance.updateMany({ collegeId, sectionId: session.sectionId, attendanceDate: asDateOnly(date), slotKey: session.slotKey }, { $set: { isFinalized: true, finalizedAt: now } });
+
   session.status = 'finalized';
   session.finalizedAt = now;
   session.finalizedBy = userId;
-  await session.save();
+  await Promise.all([
+    Attendance.updateMany(
+      { collegeId, sectionId: session.sectionId, attendanceDate: day, slotKey: session.slotKey },
+      { $set: { isFinalized: true, finalizedAt: now } }
+    ),
+    session.save()
+  ]);
 
-  // Notify students only after the attendance session is finalized.
-  const finalizedRows=await Attendance.find({
-    collegeId,sectionId:session.sectionId,attendanceDate:asDateOnly(date),slotKey:session.slotKey
-  }).select('studentId status').lean();
-  const statusLabel={present:'Present',absent:'Absent',late:'Late',leave:'Leave',short_leave:'Short Leave'};
-  await Promise.all(finalizedRows.map(row=>pushNotifications.sendToStudentIds(collegeId,[row.studentId],{
-    title:'Attendance Marked',
-    body:`Your attendance has been marked ${statusLabel[row.status]||row.status}.`,
-    data:{type:'attendance',attendanceId:String(row._id||''),sessionId:String(session._id),status:row.status}
-  }))).catch(err=>console.error('attendance_push_error',err.message));
+  // Push delivery must not hold up the attendance save response. Group students by
+  // status so the push service performs at most one user/token lookup per status
+  // instead of one lookup + network request for every student.
+  const statusLabel = { present: 'Present', absent: 'Absent', late: 'Late', leave: 'Leave', short_leave: 'Short Leave', excused: 'Excused' };
+  const groups = new Map();
+  for (const row of notifyRows) {
+    if (!row.studentId) continue;
+    const status = row.status || 'present';
+    if (!groups.has(status)) groups.set(status, []);
+    groups.get(status).push(row.studentId);
+  }
+  Promise.all([...groups.entries()].map(([status, studentIds]) =>
+    pushNotifications.sendToStudentIds(collegeId, studentIds, {
+      title: 'Attendance Marked',
+      body: `Your attendance has been marked ${statusLabel[status] || status}.`,
+      data: { type: 'attendance', sessionId: String(session._id), status }
+    })
+  )).catch(err => console.error('attendance_push_error', err.message));
+
   return session;
 }
 
